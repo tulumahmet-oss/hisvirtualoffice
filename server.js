@@ -334,6 +334,7 @@ function serializablePlayer(player) {
     sitStartedAt: player.sitStartedAt,
     drinkingCoffee: player.drinkingCoffee,
     coffeeStartedAt: player.coffeeStartedAt,
+    lastMoveSequence: player.lastMoveSequence || 0,
     lastSeenAt: player.lastSeenAt
   };
 }
@@ -358,6 +359,7 @@ function hydratePlayer(state) {
     session: null,
     coffeeTimer: null,
     lastMoveAt: 0,
+    lastMoveSequence: Number.isSafeInteger(state.lastMoveSequence) ? state.lastMoveSequence : 0,
     lastRoomLockAt: 0,
     lastLockedNoticeAt: 0,
     lastPairMessageAt: 0,
@@ -810,7 +812,8 @@ function broadcastPlayers() {
     drinkingCoffee: current.drinkingCoffee === true,
     coffeeStartedAt: current.coffeeStartedAt,
     inMeetingRoom: isInRoom(current),
-    roomId: roomFor(current)?.id || null
+    roomId: roomFor(current)?.id || null,
+    moveSequence: current.lastMoveSequence || 0
   })));
 }
 
@@ -1105,6 +1108,7 @@ io.on('connection', async (socket) => {
     coffeeStartedAt: null,
     coffeeTimer: null,
     lastMoveAt: 0,
+    lastMoveSequence: 0,
     lastSharedStateAt: 0,
     lastSeenAt: Date.now(),
     lastRoomLockAt: 0,
@@ -1132,13 +1136,16 @@ io.on('connection', async (socket) => {
 
   registerSocketHandler(socket, 'move', async (position) => {
     const now = Date.now();
-    if (now - player.lastMoveAt < 40) return;
+    const sequence = Number(position?.sequence);
+    if (Number.isSafeInteger(sequence) && sequence <= player.lastMoveSequence) return;
+    if (now - player.lastMoveAt < 40 && position?.moving === true) return;
     player.lastMoveAt = now;
     const x = Number(position?.x);
     const y = Number(position?.y);
     if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
     if (player.drinkingCoffee) return;
+    if (Number.isSafeInteger(sequence)) player.lastMoveSequence = sequence;
     if (player.sitting) {
       if (position.moving !== true) return;
       const previousRoomId = roomFor(player)?.id;

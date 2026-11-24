@@ -38,9 +38,10 @@
     .select-field select { width: 100%; padding: 9px; border: 1px solid #4b505a; border-radius: 8px; color: #f3f4f6; background: #25282e; }
     #profileStatus { min-height: 1em; margin: 0; color: #86efac; font-size: .78rem; }
     .tool-rail { position: absolute; z-index: 6; left: 12px; top: 50%; transform: translateY(-50%); display: grid; gap: 7px; padding: 8px; border: 1px solid #ffffff38; border-radius: 13px; background: #20232be8; box-shadow: 0 8px 24px #3f291b35; backdrop-filter: blur(8px); }
-    .tool-button { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; color: #c9cbd2; background: transparent; border-radius: 9px; }
+    .tool-button { position: relative; width: 44px; height: 44px; display: grid; place-items: center; padding: 0; color: #c9cbd2; background: transparent; border-radius: 9px; }
     .tool-button:hover, .tool-button[aria-expanded="true"] { color: #fff; background: #4859ca; }
     .tool-button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .notification-dot { position: absolute; top: 4px; right: 4px; width: 9px; height: 9px; border: 2px solid #20232be8; border-radius: 50%; background: #f04452; box-shadow: 0 0 7px #f04452aa; }
     .room-lock-button { position: absolute; z-index: 8; top: 14px; left: 14px; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; border: 1px solid #ffffff38; border-radius: 11px; background: #20232be8; box-shadow: 0 8px 24px #3f291b35; }
     .room-lock-button.locked { background: #a63e47; }
     .room-lock-button svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -125,8 +126,9 @@
           <button id="logout" class="secondary" type="button">Çıkış</button>
         </div>
         <nav class="tool-rail" aria-label="Ofis araçları">
-          <button class="tool-button" type="button" data-panel="chat" aria-label="Sohbeti aç veya kapat" aria-expanded="true" title="Sohbet">
+          <button class="tool-button" type="button" data-panel="chat" aria-label="Sohbeti aç veya kapat" aria-expanded="false" title="Sohbet">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-5.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 11h8M8 14h5"/></svg>
+            <span id="chatNotification" class="notification-dot hidden" aria-hidden="true"></span>
           </button>
           <button class="tool-button" type="button" data-panel="people" aria-label="Katılımcıları göster" aria-expanded="false" title="Katılımcılar">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5a3.5 3.5 0 0 1 0 6.8M18 14a5.5 5.5 0 0 1 3.5 5"/></svg>
@@ -187,7 +189,7 @@
             <p id="profileStatus" role="status" aria-live="polite"></p>
           </form>
         </aside>
-        <aside id="chatPanel" class="side-panel chat-panel" aria-label="Google Chat">
+        <aside id="chatPanel" class="side-panel chat-panel hidden" aria-label="Google Chat">
           <div id="globalChatView" class="chat-view">
             <div class="panel-heading">
               <h2>Google Chat</h2>
@@ -291,6 +293,8 @@
     const chatHint = document.getElementById('chatHint');
     const chatForm = document.getElementById('chatForm');
     const chatPanel = document.getElementById('chatPanel');
+    const chatNotification = document.getElementById('chatNotification');
+    const chatButton = document.querySelector('[data-panel="chat"]');
     const globalChatView = document.getElementById('globalChatView');
     const pairChatView = document.getElementById('pairChatView');
     const pairChatTitle = document.getElementById('pairChatTitle');
@@ -315,6 +319,7 @@
     let socket;
     let selfId;
     let self = { x: 70, y: 100 };
+    let currentUserEmail = '';
     let selfSitting = false;
     let selfDrinkingCoffee = false;
     let nearbySeatId = null;
@@ -328,6 +333,8 @@
     let remotePlayers = [];
     let activeContext = { key: 'none', mode: 'none' };
     let chatTimer;
+    let knownChatMessageKeys = new Set();
+    let chatHistoryInitialized = false;
     let lastContextKey = '';
     let lastLocationKey = '';
     let currentPairChatKey = null;
@@ -347,6 +354,9 @@
     let lastFrameTime = 0;
     let lastDrawTime = 0;
     let lastMoveSentAt = 0;
+    let lastSentMoveSequence = 0;
+    let lastAcknowledgedMoveSequence = 0;
+    let hasInitialSelfPosition = false;
     let lastLockNoticeTime = 0;
     let lastSentPosition = { x: null, y: null, direction: 'down', moving: false };
     let gameLoopStarted = false;
@@ -706,6 +716,11 @@
       });
       socket.on('connect', () => {
         selfId = socket.id;
+        lastSentMoveSequence = 0;
+        lastAcknowledgedMoveSequence = 0;
+        hasInitialSelfPosition = false;
+        lastMoveSentAt = 0;
+        lastSentPosition = { x: null, y: null, direction: facing, moving: false };
         showStatus('Bağlandı. Hareket etmek için ok tuşlarını veya WASD kullanın.');
         resizeCanvas();
         if (!gameLoopStarted) {
@@ -769,19 +784,21 @@
         seatRequestPending = false;
         const me = players.find((player) => player.id === selfId);
         if (me) {
-          self = { x: me.x, y: me.y };
+          const moveSequence = Number.isSafeInteger(me.moveSequence) ? me.moveSequence : 0;
+          if (moveSequence >= lastAcknowledgedMoveSequence) {
+            lastAcknowledgedMoveSequence = moveSequence;
+            if (!hasInitialSelfPosition ||
+                (!isLocalMovementActive() && moveSequence >= lastSentMoveSequence)) {
+              self = { x: me.x, y: me.y };
+              facing = me.direction || facing;
+              hasInitialSelfPosition = true;
+            }
+          }
           selfSitting = Boolean(me.sitting);
           const wasDrinkingCoffee = selfDrinkingCoffee;
           selfDrinkingCoffee = Boolean(me.drinkingCoffee);
           if (selfDrinkingCoffee) coffeeRequestPending = false;
           else if (wasDrinkingCoffee) showStatus('Kahve molası bitti. Afiyet olsun.');
-          facing = me.direction || facing;
-          lastSentPosition = {
-            x: me.x,
-            y: me.y,
-            direction: facing,
-            moving: Boolean(me.moving)
-          };
           if (me.character && characterKey(me.character) !== characterKey(activeCharacter)) {
             activeCharacter = me.character;
             fillCharacterForm(activeCharacter);
@@ -825,6 +842,9 @@
       if (signature !== lastContextKey) {
         lastContextKey = signature;
         chatMessages.replaceChildren();
+        knownChatMessageKeys = new Set();
+        chatHistoryInitialized = false;
+        setChatUnread(false);
         clearInterval(chatTimer);
         if (context.chatSpaceName) {
           loadMessages();
@@ -1572,6 +1592,9 @@
         const button = toolButtons.find((item) => item.dataset.panel === panelName);
         if (button) button.setAttribute('aria-expanded', String(open));
       }
+      if (name === 'chat' && isOpen && !globalChatView.classList.contains('hidden')) {
+        setChatUnread(false);
+      }
     }
 
     for (const button of toolButtons) {
@@ -1663,6 +1686,15 @@
     });
     window.addEventListener('blur', () => pressedKeys.clear());
 
+    function isLocalMovementActive() {
+      return Boolean(
+        socket?.connected &&
+        !selfSitting &&
+        !selfDrinkingCoffee &&
+        Array.from(pressedKeys).some((key) => movementDirections[key])
+      );
+    }
+
     function roomAtPosition(x, y) {
       return MAP_LAYOUT.ROOMS.find((room) =>
         x >= room.x && x <= room.x + room.width &&
@@ -1722,11 +1754,13 @@
         facing !== lastSentPosition.direction ||
         moving !== lastSentPosition.moving;
       if (socket?.connected && changed && now - lastMoveSentAt >= 40) {
+        const sequence = ++lastSentMoveSequence;
         socket.emit('move', {
           x: self.x,
           y: self.y,
           direction: facing,
-          moving
+          moving,
+          sequence
         });
         lastMoveSentAt = now;
         lastSentPosition = { x: self.x, y: self.y, direction: facing, moving };
@@ -1795,11 +1829,38 @@
       }
     });
 
+    function setChatUnread(hasUnread) {
+      chatNotification.classList.toggle('hidden', !hasUnread);
+      chatButton.setAttribute('aria-label', hasUnread
+        ? 'Yeni mesaj var. Sohbeti aç veya kapat'
+        : 'Sohbeti aç veya kapat');
+    }
+
+    function isGlobalChatVisible() {
+      return !chatPanel.classList.contains('hidden') &&
+        !globalChatView.classList.contains('hidden');
+    }
+
+    function chatMessageKey(message) {
+      return message.name ||
+        `${message.createTime || ''}|${message.sender?.email || message.sender?.displayName || ''}|${message.text || ''}`;
+    }
+
     async function loadMessages() {
       if (!activeContext.chatSpaceName) return;
       try {
         const data = await request(`/api/chat/messages?space=${encodeURIComponent(activeContext.chatSpaceName)}`);
         const messages = (data.messages || []).slice().reverse();
+        const currentMessageKeys = new Set(messages.map(chatMessageKey));
+        if (chatHistoryInitialized) {
+          const hasIncomingMessage = messages.some((message) =>
+            !knownChatMessageKeys.has(chatMessageKey(message)) &&
+            message.sender?.email?.toLowerCase() !== currentUserEmail
+          );
+          if (hasIncomingMessage && !isGlobalChatVisible()) setChatUnread(true);
+        }
+        knownChatMessageKeys = currentMessageKeys;
+        chatHistoryInitialized = true;
         chatMessages.replaceChildren();
         for (const message of messages) {
           const item = document.createElement('div');
@@ -1868,7 +1929,10 @@
     });
 
     request('/api/me').then((data) => {
-      if (data.authenticated) enterGame(data.user, data.character);
+      if (data.authenticated) {
+        currentUserEmail = data.user.email?.toLowerCase() || '';
+        enterGame(data.user, data.character);
+      }
     }).catch((error) => { loginError.textContent = error.message; });
   </script>
 </body>
