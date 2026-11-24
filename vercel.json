@@ -36,26 +36,6 @@
     {
       "source": "/vendor/three/:path*",
       "destination": "/api/server/vendor/three/:path*"
-    },
-    {
-      "source": "/office-3d.js",
-      "destination": "/api/server/office-3d.js"
-    },
-    {
-      "source": "/map-layout.js",
-      "destination": "/api/server/map-layout.js"
-    },
-    {
-      "source": "/assets/:path*",
-      "destination": "/api/server/assets/:path*"
-    },
-    {
-      "source": "/socket.io/:path*",
-      "destination": "/api/server/socket.io/:path*"
-    },
-    {
-      "source": "/:path*",
-      "destination": "/api/server/:path*"
     }
   ]
 }
