@@ -6,36 +6,16 @@
   },
   "rewrites": [
     {
-      "source": "/api/login",
-      "destination": "/api/server/api/login"
-    },
-    {
-      "source": "/api/me",
-      "destination": "/api/server/api/me"
-    },
-    {
-      "source": "/api/logout",
-      "destination": "/api/server/api/logout"
-    },
-    {
-      "source": "/api/profile",
-      "destination": "/api/server/api/profile"
-    },
-    {
       "source": "/api/chat/messages",
-      "destination": "/api/server/api/chat/messages"
+      "destination": "/api/chat-messages"
     },
     {
       "source": "/auth/google",
-      "destination": "/api/server/auth/google"
+      "destination": "/api/auth-google"
     },
     {
       "source": "/auth/google/callback",
-      "destination": "/api/server/auth/google/callback"
-    },
-    {
-      "source": "/vendor/three/:path*",
-      "destination": "/api/server/vendor/three/:path*"
+      "destination": "/api/auth-google-callback"
     }
   ]
 }

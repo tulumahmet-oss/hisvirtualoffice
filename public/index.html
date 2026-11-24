@@ -258,7 +258,7 @@
   </main>
 
   <script src="/map-layout.js"></script>
-  <script src="/api/server/socket.io/socket.io.js"></script>
+  <script src="/socket.io.js"></script>
   <script type="importmap">
     {
       "imports": {
@@ -700,7 +700,7 @@
         renderStaticMap();
       }
       socket = window.io({
-        path: '/api/server/socket.io',
+        path: '/api/socket',
         transports: ['websocket']
       });
       socket.on('connect', () => {

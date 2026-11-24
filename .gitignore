@@ -4,4 +4,6 @@ node_modules/
 !.env.example
 data/
 .vercel/
+public/socket.io.js
+public/vendor/three/
 npm-debug.log*

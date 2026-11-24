@@ -199,7 +199,7 @@ async function getCharacterProfile(userId) {
 const app = express();
 const server = require('node:http').createServer(app);
 const io = new Server(server, {
-  path: '/api/server/socket.io',
+  path: '/api/socket',
   transports: ['websocket']
 });
 const players = new Map();
@@ -258,8 +258,15 @@ app.use(helmet({
 }));
 app.use(express.json({ limit: '16kb' }));
 app.use((req, res, next) => {
-  if (process.env.VERCEL && req.url.startsWith('/api/server')) {
-    req.url = req.url.slice('/api/server'.length) || '/';
+  if (process.env.VERCEL) {
+    const requestPath = req.url.split('?')[0];
+    const routeAliases = {
+      '/api/auth-google': '/auth/google',
+      '/api/auth-google-callback': '/auth/google/callback',
+      '/api/chat-messages': '/api/chat/messages'
+    };
+    const targetPath = routeAliases[requestPath];
+    if (targetPath) req.url = `${targetPath}${req.url.slice(requestPath.length)}`;
   }
   next();
 });

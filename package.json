@@ -5,6 +5,8 @@
   "description": "Google Workspace tabanlı çok oyunculu sanal ofis prototipi",
   "main": "server.js",
   "scripts": {
+    "prestart": "node scripts/copy-runtime-assets.js",
+    "vercel-build": "node scripts/copy-runtime-assets.js",
     "start": "node server.js"
   },
   "engines": {

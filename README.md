@@ -11,6 +11,8 @@
 
 Uygulama, giris oturumlari, oyuncu varligi, oda kilitleri, sandalye rezervasyonlari ve Socket.IO yayinlari icin Redis gerektirir. Vercel'de Redis Marketplace entegrasyonu ekleyin ve olusturulan `REDIS_URL` ortam degiskenini Production, Preview ve Development ortamlarina baglayin.
 
+Vercel, `vercel-build` betigiyle Three.js ve Socket.IO tarayici dosyalarini `public/` altina kopyalar; bu uretilen dosyalar Git'e eklenmez.
+
 Vercel Project Settings > Environment Variables bolumune sunlari ekleyin:
 
 - `NODE_ENV=production`
