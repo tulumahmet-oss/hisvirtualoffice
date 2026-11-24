@@ -215,8 +215,10 @@ const sharedStateKeys = {
   pairs: 'gather:office:pairs',
   locks: 'gather:office:room-locks',
   seats: 'gather:office:seats',
-  profiles: 'gather:office:profiles'
+  profiles: 'gather:office:profiles',
+  layout: 'gather:office:layout'
 };
+let officeFurniture = MAP_LAYOUT.FURNITURE.map((item) => ({ ...item }));
 const redisClient = process.env.REDIS_URL
   ? createClient({ url: process.env.REDIS_URL })
   : null;
@@ -479,13 +481,22 @@ async function toggleSharedRoomLock(roomId) {
 
 async function refreshSharedState() {
   if (!redisClient) return;
-  const [playerEntries, pairEntries, lockedRoomIds, seatEntries, profiles] = await Promise.all([
+  const [playerEntries, pairEntries, lockedRoomIds, seatEntries, profiles, rawOfficeFurniture] = await Promise.all([
     redisClient.hGetAll(sharedStateKeys.players),
     redisClient.hGetAll(sharedStateKeys.pairs),
     redisClient.sMembers(sharedStateKeys.locks),
     redisClient.hGetAll(sharedStateKeys.seats),
-    redisClient.hGetAll(sharedStateKeys.profiles)
+    redisClient.hGetAll(sharedStateKeys.profiles),
+    redisClient.get(sharedStateKeys.layout)
   ]);
+  if (rawOfficeFurniture) {
+    const persistedFurniture = MAP_LAYOUT.normalizeFurnitureLayout(JSON.parse(rawOfficeFurniture));
+    if (!persistedFurniture || !MAP_LAYOUT.isFurnitureLayoutValid(persistedFurniture)) {
+      throw new Error('Kaydedilmiş ofis yerleşimi geçersiz.');
+    }
+    officeFurniture = persistedFurniture;
+    MAP_LAYOUT.setFurnitureLayout(officeFurniture);
+  }
   const activePlayerIds = new Set();
   const expiredPlayerIds = [];
   for (const [playerId, raw] of Object.entries(playerEntries)) {
@@ -590,6 +601,15 @@ async function handleSharedStateMessage(raw) {
       if (player.userId === data.userId) player.character = { ...data.character };
     }
     broadcastPlayers();
+  } else if (type === 'office-layout') {
+    const normalized = MAP_LAYOUT.normalizeFurnitureLayout(data);
+    if (!normalized || !MAP_LAYOUT.isFurnitureLayoutValid(normalized)) {
+      console.error('Paylaşılan ofis yerleşimi geçersiz.');
+      return;
+    }
+    officeFurniture = normalized;
+    MAP_LAYOUT.setFurnitureLayout(officeFurniture);
+    io.local.emit('officeLayout', officeFurniture);
   }
 }
 
@@ -1133,6 +1153,43 @@ io.on('connection', async (socket) => {
   }, 30000);
   player.heartbeatTimer.unref?.();
   socket.emit('roomLocks', getRoomLockState());
+  socket.emit('officeLayout', officeFurniture);
+
+  registerSocketHandler(socket, 'saveOfficeLayout', async (payload) => {
+    await refreshSharedState();
+    const normalized = MAP_LAYOUT.normalizeFurnitureLayout(payload);
+    if (!normalized || !MAP_LAYOUT.isFurnitureLayoutValid(normalized)) {
+      socket.emit('officeLayoutError', 'Ofis düzeni geçersiz. Eşyaları sınırlar içinde tutun ve çakışmaları giderin.');
+      return;
+    }
+
+    for (const occupant of players.values()) {
+      if (!occupant.sitting || !occupant.seatId) continue;
+      const currentDesk = officeFurniture.find((item) =>
+        item.type === 'desk' && item.seatId === occupant.seatId
+      );
+      if (!currentDesk) continue;
+      const nextDesk = normalized.find((item) =>
+        item.type === 'desk' && item.seatId === occupant.seatId
+      );
+      if (!nextDesk ||
+          Math.hypot(nextDesk.x - currentDesk.x, nextDesk.y - currentDesk.y) > 1 ||
+          Math.abs(nextDesk.rotation - currentDesk.rotation) > 0.001 ||
+          Math.abs(nextDesk.scale - currentDesk.scale) > 0.001) {
+        socket.emit('officeLayoutError', 'Bir çalışma istasyonunda biri oturuyor. Önce sandalyeden kalkmasını bekleyin.');
+        return;
+      }
+    }
+
+    officeFurniture = normalized;
+    MAP_LAYOUT.setFurnitureLayout(officeFurniture);
+    if (redisClient) {
+      await redisClient.set(sharedStateKeys.layout, JSON.stringify(officeFurniture));
+    }
+    await publishSharedState('office-layout', officeFurniture);
+    io.local.emit('officeLayout', officeFurniture);
+    socket.emit('officeLayoutSaved');
+  });
 
   registerSocketHandler(socket, 'move', async (position) => {
     const now = Date.now();

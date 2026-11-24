@@ -29,6 +29,18 @@
     .profile-toggle { width: 40px; height: 40px; padding: 0 !important; overflow: hidden; border: 2px solid #ffffff80; border-radius: 50%; background: #e8c99e; }
     .profile-toggle canvas { display: block; width: 36px; height: 36px; }
     .profile-panel { position: absolute; z-index: 8; top: 66px; right: 14px; width: min(330px, calc(100vw - 28px)); display: grid; gap: 12px; padding: 14px; border: 1px solid #ffffff36; border-radius: 13px; background: #20232bf5; box-shadow: 0 12px 35px #33251b66; backdrop-filter: blur(10px); }
+    .layout-editor { position: absolute; z-index: 9; top: 66px; right: 14px; width: min(370px, calc(100vw - 28px)); display: grid; gap: 10px; padding: 14px; border: 1px solid #ffffff36; border-radius: 13px; background: #20232bf5; box-shadow: 0 12px 35px #33251b66; backdrop-filter: blur(10px); }
+    .layout-editor-copy { margin: 0; color: #b7bbc5; font-size: .76rem; line-height: 1.45; }
+    .layout-add-row, .layout-item-row { display: flex; align-items: center; gap: 6px; }
+    .layout-add-row select { min-width: 0; flex: 1; padding: 9px; border: 1px solid #4b505a; border-radius: 8px; color: #f3f4f6; background: #25282e; }
+    .layout-add-row button { padding: 9px 10px; }
+    #layoutFurnitureList { display: grid; gap: 5px; max-height: min(31vh, 260px); overflow-y: auto; }
+    .layout-item-row button { padding: 7px 8px; font-size: .76rem; }
+    .layout-item-select { min-width: 0; flex: 1; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; background: #353940; }
+    .layout-item-select.selected { outline: 2px solid #7dd3fc; background: #33475b; }
+    .layout-item-action { flex: none; width: 34px; padding: 7px 0 !important; }
+    .layout-editor-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    #layoutEditorStatus { min-height: 1em; margin: 0; color: #86efac; font-size: .77rem; }
     .profile-preview { display: flex; align-items: center; gap: 10px; color: #b7bbc5; font-size: .76rem; line-height: 1.4; }
     #profilePreview { flex: none; width: 64px; height: 64px; border: 1px solid #ffffff30; border-radius: 10px; background: #efd3ad; }
     #profileForm { display: grid; gap: 10px; }
@@ -85,6 +97,7 @@
       .tool-button { width: 40px; height: 40px; }
       .room-lock-button { top: 8px; left: 8px; width: 42px; height: 42px; }
       .profile-panel { top: 58px; right: 8px; }
+      .layout-editor { top: 58px; right: 8px; }
       .side-panel { top: 8px; bottom: 8px; left: 65px; width: calc(100vw - 73px); padding: 12px; }
       .meet-dock { right: 8px; bottom: 8px; gap: 5px; padding: 6px; }
       .meet-dock button { width: 40px; height: 40px; }
@@ -120,6 +133,9 @@
             <strong>Gather Town Ofis</strong>
             <span id="userName"></span>
           </div>
+          <button id="layoutEditorToggle" class="tool-button" type="button" aria-label="Ofis düzenini düzenle" aria-expanded="false" title="Ofis düzenini düzenle">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5M4 20l4.5-1 11-11a2.1 2.1 0 0 0-3-3l-11 11L4 20Z"/><path d="M13 6 18 11"/></svg>
+          </button>
           <button id="profileToggle" class="profile-toggle" type="button" aria-label="Karakteri özelleştir" aria-expanded="false" title="Karakter profili">
             <canvas id="profileIcon" width="40" height="40" aria-hidden="true"></canvas>
           </button>
@@ -188,6 +204,23 @@
             <button id="saveCharacter" type="submit">Karakteri kaydet</button>
             <p id="profileStatus" role="status" aria-live="polite"></p>
           </form>
+        </aside>
+        <aside id="layoutEditorPanel" class="layout-editor hidden" aria-labelledby="layoutEditorTitle">
+          <div class="panel-heading">
+            <h2 id="layoutEditorTitle">Ofis düzeni</h2>
+            <button id="layoutEditorClose" class="panel-close" type="button" aria-label="Düzenleyiciyi kapat">×</button>
+          </div>
+          <p class="layout-editor-copy">Eşyaları haritada sürükleyin. Shift+sürükle ile haritayı kaydırın. Çalışma istasyonu sandalyesiyle birlikte taşınır. Kaydedilen düzen tüm ofis üyeleriyle paylaşılır.</p>
+          <div class="layout-add-row">
+            <select id="layoutFurnitureType" aria-label="Eklenecek eşya"></select>
+            <button id="addFurnitureButton" type="button">Eşya ekle</button>
+          </div>
+          <div id="layoutFurnitureList" aria-label="Ofisteki eşyalar"></div>
+          <p id="layoutEditorStatus" role="status" aria-live="polite"></p>
+          <div class="layout-editor-actions">
+            <button id="cancelFurnitureButton" class="secondary" type="button">İptal</button>
+            <button id="saveFurnitureButton" type="button">Kaydet</button>
+          </div>
         </aside>
         <aside id="chatPanel" class="side-panel chat-panel hidden" aria-label="Google Chat">
           <div id="globalChatView" class="chat-view">
@@ -282,6 +315,14 @@
     const status = document.getElementById('status');
     const meetDock = document.getElementById('meetDock');
     const roomLockButton = document.getElementById('roomLockButton');
+    const layoutEditorToggle = document.getElementById('layoutEditorToggle');
+    const layoutEditorPanel = document.getElementById('layoutEditorPanel');
+    const layoutEditorStatus = document.getElementById('layoutEditorStatus');
+    const layoutFurnitureType = document.getElementById('layoutFurnitureType');
+    const layoutFurnitureList = document.getElementById('layoutFurnitureList');
+    const addFurnitureButton = document.getElementById('addFurnitureButton');
+    const saveFurnitureButton = document.getElementById('saveFurnitureButton');
+    const cancelFurnitureButton = document.getElementById('cancelFurnitureButton');
     const seatPrompt = document.getElementById('seatPrompt');
     const coffeePrompt = document.getElementById('coffeePrompt');
     const lockedIcon = document.getElementById('lockedIcon');
@@ -367,6 +408,10 @@
     let panX = 0;
     let panY = 0;
     let pointerDrag;
+    let layoutEditorOpen = false;
+    let officeFurnitureDraft = null;
+    let selectedFurnitureId = null;
+    let layoutSaving = false;
     const MAP_LAYOUT = window.GatherMapLayout;
     const WORLD = MAP_LAYOUT.WORLD;
     const MIN_ZOOM = 0.75;
@@ -389,6 +434,7 @@
     spriteBuffer.height = 32;
     const spriteBufferContext = spriteBuffer.getContext('2d');
     let spritesReady = false;
+    let officeFurnitureSaved = MAP_LAYOUT.FURNITURE.map((item) => ({ ...item }));
 
     function checkCharacterSprites() {
       if (!idleSprite.complete || !walkSprite.complete ||
@@ -527,18 +573,10 @@
       mapCtx.fillRect(room.x + room.width / 2 - 31, room.y + 24, 62, 5);
       const centerX = room.x + room.width / 2;
       const centerY = room.y + room.height / 2 + 12;
-      mapCtx.fillStyle = '#98714f';
-      mapCtx.fillRect(centerX - 70, centerY - 27, 140, 56);
-      mapCtx.fillStyle = '#c99b69';
-      mapCtx.fillRect(centerX - 67, centerY - 25, 134, 50);
-      mapCtx.strokeStyle = '#9f754e';
-      mapCtx.lineWidth = 2;
-      mapCtx.strokeRect(centerX - 67, centerY - 25, 134, 50);
       drawChair(centerX - 88, centerY - 8);
       drawChair(centerX + 88, centerY - 8);
       drawChair(centerX - 42, centerY + 45);
       drawChair(centerX + 42, centerY + 45);
-      drawPlant(room.x + 28, room.y + room.height - 35, 0.8);
       mapCtx.fillStyle = '#fff8ed';
       mapCtx.fillRect(centerX - 62, room.y + 42, 124, 24);
       mapCtx.fillStyle = '#665341';
@@ -546,6 +584,87 @@
       mapCtx.textAlign = 'center';
       mapCtx.fillText(room.name, centerX, room.y + 59);
       mapCtx.textAlign = 'left';
+    }
+
+    function drawFurniture2D(item) {
+      const definition = MAP_LAYOUT.FURNITURE_CATALOG[item.type];
+      if (!definition) return;
+      const scale = item.scale || 1;
+      mapCtx.save();
+      mapCtx.translate(item.x, item.y);
+      mapCtx.rotate(item.rotation || 0);
+      if (item.type === 'desk') {
+        drawDesk(-57, -24, 112);
+      } else if (item.type === 'meetingTable' || item.type === 'coffeeTable') {
+        const width = definition.width;
+        const height = definition.depth;
+        mapCtx.fillStyle = '#98714f';
+        mapCtx.fillRect(-width / 2, -height / 2, width, height);
+        mapCtx.fillStyle = '#c99b69';
+        mapCtx.fillRect(-width / 2 + 3, -height / 2 + 2, width - 6, height - 6);
+        mapCtx.strokeStyle = '#9f754e';
+        mapCtx.lineWidth = 2;
+        mapCtx.strokeRect(-width / 2 + 3, -height / 2 + 2, width - 6, height - 6);
+      } else if (item.type === 'plant') {
+        drawPlant(0, 0, scale);
+      } else if (item.type === 'rug') {
+        mapCtx.fillStyle = '#786c8360';
+        mapCtx.fillRect(-definition.width / 2, -definition.depth / 2, definition.width, definition.depth);
+        mapCtx.strokeStyle = '#d7c5a180';
+        mapCtx.lineWidth = 3;
+        mapCtx.strokeRect(-definition.width / 2 + 5, -definition.depth / 2 + 5, definition.width - 10, definition.depth - 10);
+      } else if (item.type === 'shelf' || item.type === 'cabinet') {
+        const width = definition.width * scale;
+        const height = definition.depth * scale;
+        mapCtx.fillStyle = '#805a40';
+        mapCtx.fillRect(-width / 2, -height / 2, width, height);
+        mapCtx.fillStyle = '#bd8b63';
+        mapCtx.fillRect(-width / 2 + 3, -height / 2 + 3, width - 6, height - 6);
+        mapCtx.strokeStyle = '#503c2f';
+        mapCtx.lineWidth = 2;
+        mapCtx.strokeRect(-width / 2, -height / 2, width, height);
+      } else if (item.type === 'lamp') {
+        mapCtx.fillStyle = '#463b34';
+        mapCtx.fillRect(-2, -2, 4, 12);
+        mapCtx.fillStyle = '#e5c27e';
+        mapCtx.beginPath();
+        mapCtx.arc(0, -4, 7, Math.PI, 0);
+        mapCtx.fill();
+      } else if (item.type === 'monitor') {
+        mapCtx.fillStyle = '#353e4a';
+        mapCtx.fillRect(-definition.width / 2, -definition.depth / 2, definition.width, definition.depth);
+        mapCtx.fillStyle = '#7896aa';
+        mapCtx.fillRect(-definition.width / 2 + 3, -definition.depth / 2 + 2, definition.width - 6, definition.depth - 5);
+      } else if (item.type === 'keyboard') {
+        mapCtx.fillStyle = '#56606b';
+        mapCtx.fillRect(-definition.width / 2, -definition.depth / 2, definition.width, definition.depth);
+      }
+      mapCtx.restore();
+    }
+
+    function drawFurnitureLayout() {
+      const furniture = officeFurnitureDraft || MAP_LAYOUT.FURNITURE;
+      const ordered = furniture.slice().sort((first, second) =>
+        Number(second.type === 'rug') - Number(first.type === 'rug') || first.y - second.y
+      );
+      for (const item of ordered) {
+        drawFurniture2D(item);
+        if (item.id !== selectedFurnitureId) continue;
+        const definition = MAP_LAYOUT.FURNITURE_CATALOG[item.type];
+        mapCtx.save();
+        mapCtx.translate(item.x, item.y);
+        mapCtx.rotate(item.rotation || 0);
+        mapCtx.strokeStyle = '#38bdf8';
+        mapCtx.lineWidth = 3;
+        mapCtx.setLineDash([8, 5]);
+        mapCtx.strokeRect(
+          -definition.width * item.scale / 2,
+          -definition.depth * item.scale / 2,
+          definition.width * item.scale,
+          definition.depth * item.scale
+        );
+        mapCtx.restore();
+      }
     }
 
     function drawCoffeeStation() {
@@ -586,12 +705,6 @@
 
       for (const room of MEETING_ROOMS) drawMeetingRoom(room);
 
-      const deskColumns = [88, 270, 452, 634, 816];
-      const deskRows = [170, 315, 612, 772];
-      for (const y of deskRows) {
-        for (const x of deskColumns) drawDesk(x, y);
-      }
-
       mapCtx.fillStyle = '#dbe2ef';
       mapCtx.fillRect(375, 390, 265, 190);
       mapCtx.strokeStyle = '#a4b0c1';
@@ -605,16 +718,10 @@
         mapCtx.lineTo(x, 576);
         mapCtx.stroke();
       }
-      mapCtx.fillStyle = '#d5a16e';
-      mapCtx.fillRect(438, 454, 140, 48);
-      mapCtx.fillStyle = '#79b6cc';
-      mapCtx.fillRect(448, 463, 120, 10);
       drawChair(418, 461);
       drawChair(598, 461);
       drawChair(458, 528);
       drawChair(558, 528);
-      drawPlant(390, 428, 0.9);
-      drawPlant(625, 543, 0.9);
       mapCtx.fillStyle = '#f6e8d7';
       mapCtx.fillRect(43, 42, 185, 27);
       mapCtx.fillStyle = '#694d38';
@@ -624,12 +731,202 @@
       mapCtx.font = '12px system-ui';
       mapCtx.fillText('Ortak çalışma alanı', 55, 80);
 
-      drawPlant(45, 205, 1.15);
-      drawPlant(950, 280, 1.15);
-      drawPlant(46, 825, 1.1);
+      drawFurnitureLayout();
       drawCoffeeStation();
       drawDoorOpenings();
     }
+
+    function setLayoutEditorMessage(message, isError = false) {
+      layoutEditorStatus.textContent = message;
+      layoutEditorStatus.style.color = isError ? '#fca5a5' : '#86efac';
+    }
+
+    function renderLayoutEditor() {
+      layoutFurnitureType.replaceChildren();
+      for (const [type, definition] of Object.entries(MAP_LAYOUT.FURNITURE_CATALOG)) {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = definition.label;
+        layoutFurnitureType.append(option);
+      }
+
+      layoutFurnitureList.replaceChildren();
+      for (const item of officeFurnitureDraft || []) {
+        const definition = MAP_LAYOUT.FURNITURE_CATALOG[item.type];
+        const row = document.createElement('div');
+        row.className = 'layout-item-row';
+        const select = document.createElement('button');
+        select.type = 'button';
+        select.className = `layout-item-select${item.id === selectedFurnitureId ? ' selected' : ''}`;
+        select.textContent = `${definition.label} · ${Math.round(item.x)}, ${Math.round(item.y)}`;
+        select.setAttribute('aria-label', `${definition.label} seç`);
+        select.addEventListener('click', () => {
+          selectedFurnitureId = item.id;
+          office3d?.selectFurniture(item.id);
+          setLayoutEditorMessage('Haritada sürükleyerek taşıyın.');
+          renderLayoutEditor();
+          renderStaticMap();
+          draw();
+        });
+        const rotate = document.createElement('button');
+        rotate.type = 'button';
+        rotate.className = 'layout-item-action secondary';
+        rotate.textContent = '↻';
+        rotate.title = 'Eşyayı 90° döndür';
+        rotate.setAttribute('aria-label', `${definition.label} döndür`);
+        rotate.disabled = layoutSaving;
+        rotate.addEventListener('click', () => {
+          item.rotation = ((item.rotation || 0) + Math.PI / 2) % (Math.PI * 2);
+          selectedFurnitureId = item.id;
+          if (applyFurnitureDraft()) office3d?.selectFurniture(item.id);
+        });
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'layout-item-action secondary';
+        remove.textContent = '×';
+        remove.title = 'Eşyayı kaldır';
+        remove.setAttribute('aria-label', `${definition.label} kaldır`);
+        remove.disabled = layoutSaving;
+        remove.addEventListener('click', () => {
+          officeFurnitureDraft = officeFurnitureDraft.filter((entry) => entry.id !== item.id);
+          if (selectedFurnitureId === item.id) selectedFurnitureId = null;
+          applyFurnitureDraft();
+        });
+        row.append(select, rotate, remove);
+        layoutFurnitureList.append(row);
+      }
+      saveFurnitureButton.disabled = layoutSaving || !socket?.connected;
+      cancelFurnitureButton.disabled = layoutSaving;
+      addFurnitureButton.disabled = layoutSaving || (officeFurnitureDraft || []).length >= 100;
+    }
+
+    function applyFurnitureDraft() {
+      const normalized = MAP_LAYOUT.normalizeFurnitureLayout(officeFurnitureDraft);
+      if (!normalized) {
+        setLayoutEditorMessage('Eşyaları harita sınırlarının içinde tutun.', true);
+        return false;
+      }
+      officeFurnitureDraft = normalized;
+      MAP_LAYOUT.setFurnitureLayout(normalized);
+      office3d?.setFurnitureLayout(normalized);
+      office3d?.selectFurniture(selectedFurnitureId);
+      renderStaticMap();
+      renderLayoutEditor();
+      draw();
+      if (!MAP_LAYOUT.isFurnitureLayoutValid(normalized)) {
+        setLayoutEditorMessage('Bazı eşyalar çakışıyor veya kapı/işlevsel alanı kapatıyor. Kaydetmeden önce düzeltin.', true);
+      } else {
+        setLayoutEditorMessage('Düzen geçerli. Kaydetmek için Kaydet düğmesine basın.');
+      }
+      return true;
+    }
+
+    function setLayoutEditorOpen(open) {
+      layoutEditorOpen = open;
+      layoutEditorToggle.setAttribute('aria-expanded', String(open));
+      layoutEditorToggle.setAttribute('aria-label', open ? 'Ofis düzenleyiciyi kapat' : 'Ofis düzenini düzenle');
+      layoutEditorToggle.title = open ? 'Düzenleyiciyi kapat' : 'Ofis düzenini düzenle';
+      layoutEditorPanel.classList.toggle('hidden', !open);
+      pressedKeys.clear();
+      pointerDrag = null;
+      if (open) {
+        setProfilePanel(false);
+        officeFurnitureDraft = officeFurnitureSaved.map((item) => ({ ...item }));
+        selectedFurnitureId = null;
+        setLayoutEditorMessage('Eşya ekleyin veya haritada sürükleyerek taşıyın.');
+        applyFurnitureDraft();
+      } else {
+        officeFurnitureDraft = null;
+        selectedFurnitureId = null;
+        MAP_LAYOUT.setFurnitureLayout(officeFurnitureSaved);
+        office3d?.setFurnitureLayout(officeFurnitureSaved);
+        renderStaticMap();
+        draw();
+      }
+    }
+
+    function editorWorldPointAt(clientX, clientY) {
+      if (office3d) return office3d.worldPointAt(clientX, clientY);
+      const rect = canvas.getBoundingClientRect();
+      const scale = Math.min(canvas.width / WORLD.width, canvas.height / WORLD.height) * zoomLevel;
+      const offsetX = (canvas.width - WORLD.width * scale) / 2 + panX * scale;
+      const offsetY = (canvas.height - WORLD.height * scale) / 2 + panY * scale;
+      const pixelX = (clientX - rect.left) * canvas.width / rect.width;
+      const pixelY = (clientY - rect.top) * canvas.height / rect.height;
+      return { x: (pixelX - offsetX) / scale, y: (pixelY - offsetY) / scale };
+    }
+
+    function editorFurnitureAt(clientX, clientY, point) {
+      if (office3d) {
+        const pickedId = office3d.pickFurniture(clientX, clientY);
+        if (pickedId) return pickedId;
+      }
+      const items = (officeFurnitureDraft || []).slice().reverse();
+      for (const item of items) {
+        const definition = MAP_LAYOUT.FURNITURE_CATALOG[item.type];
+        if (Math.abs(point.x - item.x) <= definition.width * item.scale / 2 &&
+            Math.abs(point.y - item.y) <= definition.depth * item.scale / 2) return item.id;
+      }
+      return null;
+    }
+
+    function moveDraftFurniture(pointer, clientX, clientY) {
+      const point = editorWorldPointAt(clientX, clientY);
+      const item = officeFurnitureDraft?.find((entry) => entry.id === pointer.furnitureId);
+      if (!point || !item) return;
+      const definition = MAP_LAYOUT.FURNITURE_CATALOG[item.type];
+      const halfWidth = definition.width * item.scale / 2;
+      const halfDepth = definition.depth * item.scale / 2;
+      item.x = Math.max(halfWidth, Math.min(WORLD.width - halfWidth,
+        Math.round((point.x + pointer.offsetX) / 10) * 10));
+      item.y = Math.max(halfDepth, Math.min(WORLD.height - halfDepth,
+        Math.round((point.y + pointer.offsetY) / 10) * 10));
+      office3d?.moveFurniture(item.id, item.x, item.y, item.rotation);
+      renderStaticMap();
+      draw();
+    }
+
+    function addFurnitureToDraft() {
+      if (!officeFurnitureDraft || officeFurnitureDraft.length >= 100) return;
+      const type = layoutFurnitureType.value;
+      const definition = MAP_LAYOUT.FURNITURE_CATALOG[type];
+      if (!definition) return;
+      const id = `furniture-${crypto.randomUUID()}`;
+      const item = {
+        id,
+        type,
+        x: Math.max(definition.width / 2, Math.min(WORLD.width - definition.width / 2, self.x + 65)),
+        y: Math.max(definition.depth / 2, Math.min(WORLD.height - definition.depth / 2, self.y + 35)),
+        rotation: 0,
+        scale: 1
+      };
+      if (type === 'desk') item.seatId = `seat-${id}`;
+      officeFurnitureDraft.push(item);
+      selectedFurnitureId = id;
+      if (applyFurnitureDraft()) setLayoutEditorMessage(`${definition.label} eklendi. Haritada sürükleyerek yerleştirin.`);
+    }
+
+    layoutEditorToggle.addEventListener('click', () => {
+      setLayoutEditorOpen(!layoutEditorOpen);
+    });
+    document.getElementById('layoutEditorClose').addEventListener('click', () => setLayoutEditorOpen(false));
+    addFurnitureButton.addEventListener('click', addFurnitureToDraft);
+    cancelFurnitureButton.addEventListener('click', () => setLayoutEditorOpen(false));
+    saveFurnitureButton.addEventListener('click', () => {
+      const normalized = MAP_LAYOUT.normalizeFurnitureLayout(officeFurnitureDraft);
+      if (!normalized || !MAP_LAYOUT.isFurnitureLayoutValid(normalized)) {
+        setLayoutEditorMessage('Düzen geçersiz. Eşyaları sınırlar içinde tutun ve çakışmaları giderin.', true);
+        return;
+      }
+      if (!socket?.connected) {
+        setLayoutEditorMessage('Sunucu bağlantısı yok. Yeniden bağlanınca kaydedin.', true);
+        return;
+      }
+      layoutSaving = true;
+      setLayoutEditorMessage('Düzen kaydediliyor...');
+      renderLayoutEditor();
+      socket.emit('saveOfficeLayout', normalized);
+    });
 
     function drawDoorOpenings() {
       for (const door of MAP_LAYOUT.DOORS) {
@@ -681,6 +978,7 @@
     function enterGame(user, character) {
       login.classList.add('hidden');
       game.classList.remove('hidden');
+      renderStaticMap();
       document.getElementById('userName').textContent = user.name;
       activeCharacter = character;
       fillCharacterForm(character);
@@ -705,6 +1003,35 @@
           renderStaticMap();
           draw();
         });
+        socket.on('officeLayout', (items) => {
+          const normalized = MAP_LAYOUT.normalizeFurnitureLayout(items);
+          if (!normalized) {
+            setLayoutEditorMessage('Sunucudan geçersiz bir ofis düzeni alındı.', true);
+            showStatus('Ofis düzeni yüklenemedi. Sayfayı yenileyin.', true);
+            return;
+          }
+          officeFurnitureSaved = normalized.map((item) => ({ ...item }));
+          MAP_LAYOUT.setFurnitureLayout(officeFurnitureSaved);
+          office3d?.setFurnitureLayout(officeFurnitureSaved);
+          if (layoutEditorOpen) {
+            officeFurnitureDraft = officeFurnitureSaved.map((item) => ({ ...item }));
+            selectedFurnitureId = null;
+            setLayoutEditorMessage('Paylaşılan ofis düzeni güncellendi.');
+            renderLayoutEditor();
+          }
+          renderStaticMap();
+          draw();
+        });
+        socket.on('officeLayoutSaved', () => {
+          layoutSaving = false;
+          setLayoutEditorMessage('Ofis düzeni kaydedildi ve tüm üyelere paylaşıldı.');
+          renderLayoutEditor();
+        });
+        socket.on('officeLayoutError', (message) => {
+          layoutSaving = false;
+          setLayoutEditorMessage(message, true);
+          renderLayoutEditor();
+        });
       } catch (error) {
         console.error('WebGL başlatılamadı:', error);
         showStatus(`3D sahne başlatılamadı: ${error.message}`, true);
@@ -724,6 +1051,7 @@
         lastMoveSentAt = 0;
         lastSentPosition = { x: null, y: null, direction: facing, moving: false };
         showStatus('Bağlandı. Hareket etmek için ok tuşlarını veya WASD kullanın.');
+        if (layoutEditorOpen) renderLayoutEditor();
         resizeCanvas();
         if (!gameLoopStarted) {
           gameLoopStarted = true;
@@ -732,8 +1060,17 @@
         }
       });
       socket.on('connect_error', (error) => showStatus(error.message, true));
-      socket.on('serverError', (message) => showStatus(message, true));
+      socket.on('serverError', (message) => {
+        if (layoutSaving) {
+          layoutSaving = false;
+          setLayoutEditorMessage(message, true);
+          renderLayoutEditor();
+        }
+        showStatus(message, true);
+      });
       socket.on('disconnect', () => {
+        layoutSaving = false;
+        if (layoutEditorOpen) renderLayoutEditor();
         seatRequestPending = false;
         coffeeRequestPending = false;
         selfSitting = false;
@@ -1550,6 +1887,52 @@
     }
 
     canvas.addEventListener('pointerdown', (event) => {
+      if (layoutEditorOpen) {
+        if (layoutSaving) return;
+        if (event.button !== 0 || event.shiftKey) {
+          pointerDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, panX, panY };
+          canvas.setPointerCapture(event.pointerId);
+          canvas.style.cursor = 'grabbing';
+          return;
+        }
+        const point = editorWorldPointAt(event.clientX, event.clientY);
+        if (!point) return;
+        const furnitureId = editorFurnitureAt(event.clientX, event.clientY, point);
+        if (furnitureId) {
+          const item = officeFurnitureDraft?.find((entry) => entry.id === furnitureId);
+          if (!item) return;
+          selectedFurnitureId = furnitureId;
+          office3d?.selectFurniture(furnitureId);
+          pointerDrag = {
+            id: event.pointerId,
+            mode: 'furniture',
+            furnitureId,
+            x: event.clientX,
+            y: event.clientY,
+            offsetX: item.x - point.x,
+            offsetY: item.y - point.y
+          };
+          setLayoutEditorMessage('Sürükleyerek taşıyın. Kaydetmek için Kaydet düğmesine basın.');
+          renderLayoutEditor();
+        } else if (selectedFurnitureId) {
+          pointerDrag = {
+            id: event.pointerId,
+            mode: 'furniture',
+            furnitureId: selectedFurnitureId,
+            x: event.clientX,
+            y: event.clientY,
+            offsetX: 0,
+            offsetY: 0
+          };
+          moveDraftFurniture(pointerDrag, event.clientX, event.clientY);
+        } else {
+          return;
+        }
+        event.preventDefault();
+        canvas.setPointerCapture(event.pointerId);
+        canvas.style.cursor = 'grabbing';
+        return;
+      }
       if (event.button !== 0) return;
       pointerDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, panX, panY };
       canvas.setPointerCapture(event.pointerId);
@@ -1557,7 +1940,13 @@
     });
     canvas.addEventListener('pointermove', (event) => {
       if (!pointerDrag || event.pointerId !== pointerDrag.id) {
-        canvas.style.cursor = messageIconAtClientPoint(event.clientX, event.clientY) ? 'pointer' : 'grab';
+        canvas.style.cursor = layoutEditorOpen
+          ? (selectedFurnitureId ? 'move' : 'default')
+          : (messageIconAtClientPoint(event.clientX, event.clientY) ? 'pointer' : 'grab');
+        return;
+      }
+      if (pointerDrag.mode === 'furniture') {
+        moveDraftFurniture(pointerDrag, event.clientX, event.clientY);
         return;
       }
       const rect = canvas.getBoundingClientRect();
@@ -1570,8 +1959,20 @@
     });
     function stopMapDrag(event) {
       if (!pointerDrag || event.pointerId !== pointerDrag.id) return;
+      if (pointerDrag.mode === 'furniture') {
+        pointerDrag = null;
+        if (!MAP_LAYOUT.isFurnitureLayoutValid(officeFurnitureDraft)) {
+          setLayoutEditorMessage('Bazı eşyalar çakışıyor veya kapı/işlevsel alanı kapatıyor. Kaydetmeden önce düzeltin.', true);
+        } else {
+          setLayoutEditorMessage('Düzen geçerli. Kaydetmek için Kaydet düğmesine basın.');
+        }
+        renderLayoutEditor();
+        canvas.style.cursor = selectedFurnitureId ? 'move' : 'default';
+        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+        return;
+      }
       const wasClick = Math.hypot(event.clientX - pointerDrag.x, event.clientY - pointerDrag.y) < 6;
-      if (wasClick) {
+      if (wasClick && !layoutEditorOpen) {
         const hitbox = messageIconAtClientPoint(event.clientX, event.clientY);
         if (hitbox) openPairChat(hitbox.pairKey, hitbox.peerName);
       }
@@ -1581,6 +1982,9 @@
     }
     canvas.addEventListener('pointerup', stopMapDrag);
     canvas.addEventListener('pointercancel', stopMapDrag);
+    canvas.addEventListener('contextmenu', (event) => {
+      if (layoutEditorOpen) event.preventDefault();
+    });
     canvas.addEventListener('pointerleave', () => {
       if (!pointerDrag) canvas.style.cursor = 'grab';
     });
@@ -1670,6 +2074,10 @@
           event.target instanceof HTMLSelectElement ||
           event.target instanceof HTMLTextAreaElement) return;
       const key = event.key.toLowerCase();
+      if (layoutEditorOpen && movementDirections[key]) {
+        event.preventDefault();
+        return;
+      }
       if (!movementDirections[key] && key !== 'shift') return;
       event.preventDefault();
       if (selfDrinkingCoffee && movementDirections[key]) return;
@@ -1691,6 +2099,7 @@
     function isLocalMovementActive() {
       return Boolean(
         socket?.connected &&
+        !layoutEditorOpen &&
         !selfSitting &&
         !selfDrinkingCoffee &&
         Array.from(pressedKeys).some((key) => movementDirections[key])
@@ -1712,7 +2121,7 @@
       const vertical = Number(pressedKeys.has('arrowdown') || pressedKeys.has('s')) -
         Number(pressedKeys.has('arrowup') || pressedKeys.has('w'));
       const hasMovementInput = Boolean(
-        socket?.connected && !selfSitting && !selfDrinkingCoffee && (horizontal || vertical)
+        socket?.connected && !layoutEditorOpen && !selfSitting && !selfDrinkingCoffee && (horizontal || vertical)
       );
       let moving = false;
 

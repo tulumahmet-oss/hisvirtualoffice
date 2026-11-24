@@ -7,9 +7,15 @@
 3. `npm install` ve `npm start` komutlarini calistirin.
 4. Uygulamayi `http://localhost:3000` adresinden acin.
 
+## Ofis duzenleyicisi
+
+Ofise giris yaptiktan sonra sag ustteki kalem simgesinden duzenleyiciyi acin. Tum giris yapmis ofis uyeleri esya ekleyebilir, esyalari haritada surukleyebilir, 90 derece dondurebilir veya kaldirabilir. Calisma istasyonlari sandalyeleriyle birlikte tasinir; birisi o sandalyede otururken istasyon tasinamaz veya kaldirilamaz. Oda sinirlari, kapilar ve kahve istasyonu sabit kalir.
+
+Degisiklikler Kaydet secilene kadar taslak olarak kalir. Kaydedilen yerlesim Redis'te saklanir ve diger ofis uyelerine aninda gonderilir. Iptal, kaydedilmemis degisiklikleri atar.
+
 ## Vercel ve GitHub ile yayinlama
 
-Uygulama, giris oturumlari, oyuncu varligi, oda kilitleri, sandalye rezervasyonlari ve Socket.IO yayinlari icin Redis gerektirir. Vercel'de Redis Marketplace entegrasyonu ekleyin ve olusturulan `REDIS_URL` ortam degiskenini Production, Preview ve Development ortamlarina baglayin.
+Uygulama, giris oturumlari, oyuncu varligi, oda kilitleri, sandalye rezervasyonlari, paylasilan ofis yerlesimi ve Socket.IO yayinlari icin Redis gerektirir. Vercel'de Redis Marketplace entegrasyonu ekleyin ve olusturulan `REDIS_URL` ortam degiskenini Production, Preview ve Development ortamlarina baglayin.
 
 Vercel, `vercel-build` betigiyle Three.js ve Socket.IO tarayici dosyalarini `public/` altina kopyalar; bu uretilen dosyalar Git'e eklenmez.
 

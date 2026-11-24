@@ -120,7 +120,11 @@ export class Office3DScene {
     this.players = new Map();
     this.characterTemplates = new Map();
     this.furnitureTemplates = new Map();
-    this.furnitureRoots = [];
+    this.furnitureRoots = new Map();
+    this.fixedFurnitureRoots = [];
+    this.seatRoots = new Map();
+    this.selectionHelper = null;
+    this.raycaster = new THREE.Raycaster();
     this.doorRoots = [];
     this.previewRenderer = null;
     this.previewScene = null;
@@ -270,49 +274,142 @@ export class Office3DScene {
   }
 
   buildFurniture() {
-    const deskColumns = [88, 270, 452, 634, 816];
-    const deskRows = [170, 315, 612, 772];
-    let deskIndex = 0;
-    for (const z of deskRows) {
-      for (const x of deskColumns) {
-        this.addFurniture('desk', x + 57, z + 24, 114, 48, 29);
-        this.addFurniture('monitor', x + 57, z + 10, 28, 14, 24, 31);
-        this.addFurniture('keyboard', x + 57, z + 25, 25, 10, 3, 31);
-        if (deskIndex % 5 === 0) {
-          this.addFurniture('lamp', x + 18, z + 18, 19, 19, 36, 30);
-        }
-        deskIndex += 1;
-      }
-    }
-
+    this.clearFurniture();
     for (const seat of this.layout.SEATS) {
       const rotation = this.directionRotation(seat.direction);
       const useAlternate = seat.id.endsWith('2') || seat.id.endsWith('4');
-      this.addFurniture(useAlternate ? 'chairAlternate' : 'chair', seat.x, seat.y, 26, 28, 39, 0, rotation);
+      const chair = this.addFurniture(useAlternate ? 'chairAlternate' : 'chair', seat.x, seat.y, 26, 28, 39, 0, rotation);
+      this.fixedFurnitureRoots.push(chair);
+      this.seatRoots.set(seat.id, chair);
     }
 
     for (const room of this.layout.ROOMS) {
       const centerX = room.x + room.width / 2;
-      const centerZ = room.y + room.height / 2 + 12;
-      this.addFurniture('meetingTable', centerX, centerZ, 142, 60, 28);
-      this.addFurniture('monitor', centerX, room.y + 29, 68, 13, 28, 34);
-      this.addFurniture('shelf', room.x + 32, room.y + 112, 62, 33, 75);
-      this.addFurniture('rug', centerX, centerZ + 3, 185, 225, 1, 0.25, 0, 0.9);
+      const monitor = this.addFurniture('monitor', centerX, room.y + 29, 68, 13, 28, 34);
+      this.fixedFurnitureRoots.push(monitor);
     }
 
-    this.addFurniture('coffeeTable', 508, 478, 142, 58, 25);
-    this.addFurniture('coffeeMachine', this.layout.COFFEE_STATION.x, this.layout.COFFEE_STATION.y, 48, 48, 66);
-    this.addFurniture('cabinet', 854, 92, 48, 42, 63);
-    this.addFurniture('shelf', 886, 744, 90, 38, 95);
-    for (const [x, z, width, height] of [
-      [390, 428, 43, 82],
-      [625, 543, 43, 82],
-      [45, 205, 50, 96],
-      [950, 280, 50, 96],
-      [46, 825, 48, 92]
-    ]) {
-      this.addFurniture('plant', x, z, width, width, height);
+    const coffeeMachine = this.addFurniture('coffeeMachine', this.layout.COFFEE_STATION.x, this.layout.COFFEE_STATION.y, 48, 48, 66);
+    this.fixedFurnitureRoots.push(coffeeMachine);
+    for (const item of this.layout.FURNITURE) this.buildEditableFurniture(item);
+  }
+
+  clearFurniture() {
+    if (this.selectionHelper) {
+      this.scene.remove(this.selectionHelper);
+      this.selectionHelper.geometry.dispose();
+      this.selectionHelper.material.dispose();
+      this.selectionHelper = null;
     }
+    for (const root of this.furnitureRoots.values()) this.scene.remove(root);
+    for (const root of this.fixedFurnitureRoots) this.scene.remove(root);
+    this.furnitureRoots.clear();
+    this.fixedFurnitureRoots = [];
+    this.seatRoots.clear();
+  }
+
+  buildEditableFurniture(item) {
+    const definition = this.layout.FURNITURE_CATALOG[item.type];
+    if (!definition) return;
+    const scale = item.scale || 1;
+    const root = new THREE.Group();
+    root.position.set(item.x, 0, item.y);
+    root.rotation.y = item.rotation || 0;
+    root.userData.furnitureId = item.id;
+    this.scene.add(root);
+    this.addFurniture(
+      item.type,
+      0,
+      0,
+      definition.width * scale,
+      definition.depth * scale,
+      definition.height * scale,
+      0,
+      0,
+      item.type === 'rug' ? 0.9 : 1,
+      root
+    );
+    if (item.type === 'desk') {
+      this.addFurniture('monitor', 0, -14 * scale, 28 * scale, 14 * scale, 24 * scale, 31 * scale, 0, 1, root);
+      this.addFurniture('keyboard', 0, 1 * scale, 25 * scale, 10 * scale, 3 * scale, 31 * scale, 0, 1, root);
+    }
+    this.furnitureRoots.set(item.id, root);
+  }
+
+  setFurnitureLayout(items) {
+    this.layout.setFurnitureLayout(items);
+    if (this.initialized) this.buildFurniture();
+  }
+
+  moveFurniture(id, x, y, rotation) {
+    const root = this.furnitureRoots.get(id);
+    if (!root) return;
+    root.position.set(x, 0, y);
+    if (Number.isFinite(rotation)) root.rotation.y = rotation;
+    const item = this.layout.FURNITURE.find((entry) => entry.id === id);
+    if (item?.type === 'desk') {
+      const seat = this.layout.FURNITURE_CATALOG.desk.seatOffset;
+      const seatRoot = this.seatRoots.get(item.seatId);
+      if (seatRoot) {
+        const cosine = Math.cos(root.rotation.y);
+        const sine = Math.sin(root.rotation.y);
+        const seatX = seat.x * item.scale;
+        const seatY = seat.y * item.scale;
+        seatRoot.position.set(
+          x + cosine * seatX + sine * seatY,
+          0,
+          y - sine * seatX + cosine * seatY
+        );
+        seatRoot.rotation.y = root.rotation.y + this.directionRotation('up');
+      }
+    }
+    this.selectionHelper?.update();
+  }
+
+  selectFurniture(id) {
+    if (this.selectionHelper) {
+      this.scene.remove(this.selectionHelper);
+      this.selectionHelper.geometry.dispose();
+      this.selectionHelper.material.dispose();
+      this.selectionHelper = null;
+    }
+    const root = this.furnitureRoots.get(id);
+    if (root) {
+      this.selectionHelper = new THREE.BoxHelper(root, 0x7dd3fc);
+      this.scene.add(this.selectionHelper);
+    }
+  }
+
+  worldPointAt(clientX, clientY) {
+    const rect = this.overlayCanvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const pointer = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1
+    );
+    this.raycaster.setFromCamera(pointer, this.camera);
+    const point = this.raycaster.ray.intersectPlane(
+      new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
+      new THREE.Vector3()
+    );
+    return point ? { x: point.x, y: point.z } : null;
+  }
+
+  pickFurniture(clientX, clientY) {
+    const rect = this.overlayCanvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const pointer = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1
+    );
+    this.raycaster.setFromCamera(pointer, this.camera);
+    const hits = this.raycaster.intersectObjects([...this.furnitureRoots.values()], true);
+    for (const hit of hits) {
+      let object = hit.object;
+      while (object && !object.userData.furnitureId) object = object.parent;
+      if (object) return object.userData.furnitureId;
+    }
+    return null;
   }
 
   buildDoors() {
@@ -379,14 +476,13 @@ export class Office3DScene {
     parent.add(top);
   }
 
-  addFurniture(key, x, z, width, depth, height, y = 0, rotation = 0, opacity = 1) {
+  addFurniture(key, x, z, width, depth, height, y = 0, rotation = 0, opacity = 1, parent = this.scene) {
     const object = this.createFurnitureObject(key, width, depth, height);
     if (!object) {
       const fallback = this.makeFurnitureFallback(key, width, depth, height);
       fallback.position.set(x, y, z);
       fallback.rotation.y = rotation;
-      this.scene.add(fallback);
-      this.furnitureRoots.push(fallback);
+      parent.add(fallback);
       return fallback;
     }
     object.position.set(x, y, z);
@@ -401,8 +497,7 @@ export class Office3DScene {
         }
       });
     }
-    this.scene.add(object);
-    this.furnitureRoots.push(object);
+    parent.add(object);
     return object;
   }
 
