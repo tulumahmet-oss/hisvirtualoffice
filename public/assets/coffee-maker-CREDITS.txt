@@ -1,0 +1,7 @@
+Coffee Maker sprite
+Artist: Eliza Wyatt
+License: OGA-BY 3.0 (CC-BY 3.0 with DRM waiver)
+License URL: https://creativecommons.org/licenses/by/3.0/
+Source: https://opengameart.org/content/lpc-revised-the-office
+Project: https://github.com/ElizaWy/LPC
+Asset is included without modification.

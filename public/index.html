@@ -1,0 +1,1874 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gather Town Ofis Prototipi</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #17191d; color: #f3f4f6; }
+    * { box-sizing: border-box; }
+    body { margin: 0; width: 100vw; height: 100dvh; overflow: hidden; }
+    button, input { font: inherit; }
+    button { border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; color: white; background: #4859ca; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    button.secondary { background: #353940; }
+    input { width: 100%; padding: 11px; border: 1px solid #4b505a; border-radius: 8px; background: #25282e; color: white; }
+    .card { width: min(100% - 32px, 470px); margin: 0 auto; position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -50%); padding: 26px; border: 1px solid #3b3e45; border-radius: 12px; background: #22252b; }
+    .hidden { display: none !important; }
+    .login-form { display: grid; gap: 12px; margin-top: 20px; }
+    #loginError { color: #fca5a5; min-height: 1.4em; }
+    #game { position: fixed; inset: 0; width: 100vw; height: 100dvh; overflow: hidden; background: #e8c99e; }
+    .layout, .play-area { position: absolute; inset: 0; overflow: hidden; }
+    .world-3d { position: absolute; z-index: 0; inset: 0; display: block; width: 100%; height: 100%; pointer-events: none; }
+    #world { position: absolute; z-index: 1; inset: 0; display: block; width: 100%; height: 100%; background: transparent; cursor: grab; touch-action: none; }
+    .topbar { position: absolute; z-index: 4; top: 12px; right: 14px; display: flex; align-items: center; gap: 12px; padding: 7px 9px 7px 13px; border: 1px solid #ffffff38; border-radius: 11px; background: #20232bdc; box-shadow: 0 5px 18px #3f291b35; backdrop-filter: blur(8px); }
+    .brand { display: grid; gap: 1px; }
+    .brand strong { font-size: .88rem; }
+    #userName { color: #c4c7cf; font-size: .75rem; }
+    .topbar button { padding: 7px 10px; font-size: .8rem; }
+    .profile-toggle { width: 40px; height: 40px; padding: 0 !important; overflow: hidden; border: 2px solid #ffffff80; border-radius: 50%; background: #e8c99e; }
+    .profile-toggle canvas { display: block; width: 36px; height: 36px; }
+    .profile-panel { position: absolute; z-index: 8; top: 66px; right: 14px; width: min(330px, calc(100vw - 28px)); display: grid; gap: 12px; padding: 14px; border: 1px solid #ffffff36; border-radius: 13px; background: #20232bf5; box-shadow: 0 12px 35px #33251b66; backdrop-filter: blur(10px); }
+    .profile-preview { display: flex; align-items: center; gap: 10px; color: #b7bbc5; font-size: .76rem; line-height: 1.4; }
+    #profilePreview { flex: none; width: 64px; height: 64px; border: 1px solid #ffffff30; border-radius: 10px; background: #efd3ad; }
+    #profileForm { display: grid; gap: 10px; }
+    .color-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .color-fields label, .select-field { display: grid; gap: 5px; color: #d3d5db; font-size: .76rem; }
+    .color-fields input { height: 36px; padding: 3px; cursor: pointer; }
+    .select-field select { width: 100%; padding: 9px; border: 1px solid #4b505a; border-radius: 8px; color: #f3f4f6; background: #25282e; }
+    #profileStatus { min-height: 1em; margin: 0; color: #86efac; font-size: .78rem; }
+    .tool-rail { position: absolute; z-index: 6; left: 12px; top: 50%; transform: translateY(-50%); display: grid; gap: 7px; padding: 8px; border: 1px solid #ffffff38; border-radius: 13px; background: #20232be8; box-shadow: 0 8px 24px #3f291b35; backdrop-filter: blur(8px); }
+    .tool-button { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; color: #c9cbd2; background: transparent; border-radius: 9px; }
+    .tool-button:hover, .tool-button[aria-expanded="true"] { color: #fff; background: #4859ca; }
+    .tool-button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .room-lock-button { position: absolute; z-index: 8; top: 14px; left: 14px; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; border: 1px solid #ffffff38; border-radius: 11px; background: #20232be8; box-shadow: 0 8px 24px #3f291b35; }
+    .room-lock-button.locked { background: #a63e47; }
+    .room-lock-button svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .side-panel { position: absolute; z-index: 5; top: 14px; bottom: 14px; left: 78px; width: min(360px, calc(100vw - 92px)); display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid #ffffff36; border-radius: 13px; background: #20232bf0; box-shadow: 0 12px 35px #33251b55; backdrop-filter: blur(10px); }
+    .chat-view { display: flex; flex: 1; min-height: 0; flex-direction: column; gap: 12px; }
+    .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .panel-heading h2 { margin: 0; font-size: 1rem; }
+    .panel-close { width: 32px; height: 32px; padding: 0; color: #d3d5db; background: #ffffff10; font-size: 1.2rem; }
+    #chatHint { margin: -5px 0 0; color: #aeb2bc; font-size: .8rem; line-height: 1.45; }
+    #chatMessages { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 2px; }
+    #pairChatMessages { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 2px; }
+    .message { border-bottom: 1px solid #ffffff14; padding: 10px 2px; overflow-wrap: anywhere; }
+    .message strong { color: #b7c2ff; font-size: .84rem; }
+    .message time { display: block; margin-top: 3px; color: #999eaa; font-size: .7rem; }
+    #chatForm { display: flex; gap: 7px; }
+    #chatForm input { min-width: 0; flex: 1; padding: 10px; }
+    #chatForm button { padding: 9px 11px; }
+    #pairChatForm { display: flex; gap: 7px; }
+    #pairChatForm input { min-width: 0; flex: 1; padding: 10px; }
+    #pairChatForm button { padding: 9px 11px; }
+    #peopleList { display: grid; gap: 7px; overflow-y: auto; }
+    .person-card { display: flex; align-items: center; gap: 9px; padding: 9px; border-radius: 8px; background: #ffffff0c; font-size: .84rem; }
+    .person-dot { width: 9px; height: 9px; border-radius: 50%; background: #777d87; }
+    .person-dot.is-online { background: #65d68a; box-shadow: 0 0 8px #65d68a99; }
+    .meeting-invite { position: absolute; z-index: 12; inset: 0; display: grid; place-items: center; padding: 16px; background: #101318a8; backdrop-filter: blur(3px); }
+    .meeting-invite-card { width: min(420px, 100%); display: grid; gap: 14px; padding: 20px; border: 1px solid #ffffff38; border-radius: 14px; background: #20232bf5; box-shadow: 0 18px 50px #0008; }
+    .meeting-invite-card h2 { margin: 0; font-size: 1.05rem; }
+    .meeting-invite-card p { margin: 0; color: #c5c7ce; line-height: 1.5; }
+    .meeting-invite-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .panel-copy { margin: 0; color: #c5c7ce; font-size: .84rem; line-height: 1.55; }
+    .meet-dock { position: absolute; z-index: 4; right: 16px; bottom: 16px; display: flex; justify-content: flex-end; gap: 7px; padding: 8px; border: 1px solid #ffffff38; border-radius: 13px; background: #20232be8; box-shadow: 0 8px 24px #3f291b35; backdrop-filter: blur(8px); }
+    .meet-dock button { width: 42px; height: 42px; display: grid; place-items: center; padding: 0; }
+    .meet-dock svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .seat-prompt { position: absolute; z-index: 6; left: 50%; bottom: 20px; transform: translateX(-50%); min-width: 132px; border: 1px solid #ffffff55; background: #20232bf2; box-shadow: 0 6px 22px #0006; }
+    .coffee-prompt { bottom: 72px; }
+    #status { position: absolute; z-index: 7; top: 14px; left: 50%; transform: translateX(-50%); max-width: min(600px, calc(100vw - 120px)); margin: 0; padding: 8px 12px; border: 1px solid #ffffff36; border-radius: 9px; background: #20232bf0; font-size: .82rem; text-align: center; box-shadow: 0 5px 18px #3f291b35; }
+    @media (max-width: 700px) {
+      .topbar { top: 8px; right: 8px; gap: 7px; }
+      .brand strong { font-size: .77rem; }
+      .tool-rail { left: 7px; padding: 6px; }
+      .tool-button { width: 40px; height: 40px; }
+      .room-lock-button { top: 8px; left: 8px; width: 42px; height: 42px; }
+      .profile-panel { top: 58px; right: 8px; }
+      .side-panel { top: 8px; bottom: 8px; left: 65px; width: calc(100vw - 73px); padding: 12px; }
+      .meet-dock { right: 8px; bottom: 8px; gap: 5px; padding: 6px; }
+      .meet-dock button { width: 40px; height: 40px; }
+      #status { top: 58px; max-width: calc(100vw - 82px); font-size: .75rem; }
+    }
+  </style>
+</head>
+<body>
+  <section id="login" class="card">
+    <h1>Gather Town Ofis</h1>
+    <p>Önce ofis şifresini girin, ardından Google hesabınızı bağlayın.</p>
+    <form id="loginForm" class="login-form">
+      <label for="password">Ofis şifresi</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button type="submit">Şifreyi doğrula</button>
+    </form>
+    <p id="loginError" role="status"></p>
+    <button id="googleLogin" class="hidden" type="button">Google ile Giriş Yap</button>
+  </section>
+
+  <main id="game" class="hidden">
+    <div class="layout">
+      <section class="play-area">
+        <canvas id="world" width="1600" height="900" aria-label="Çok oyunculu sanal ofis haritası"></canvas>
+        <button id="seatPrompt" class="seat-prompt hidden" type="button" aria-live="polite">Otur</button>
+        <button id="coffeePrompt" class="seat-prompt coffee-prompt hidden" type="button" aria-live="polite">Kahve iç</button>
+        <button id="roomLockButton" class="room-lock-button hidden" type="button" aria-label="Odayı kilitle" aria-pressed="false" title="Odayı kilitle">
+          <svg id="lockedIcon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
+          <svg id="unlockedIcon" class="hidden" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7-2.6M12 14v3"/></svg>
+        </button>
+        <div class="topbar">
+          <div class="brand">
+            <strong>Gather Town Ofis</strong>
+            <span id="userName"></span>
+          </div>
+          <button id="profileToggle" class="profile-toggle" type="button" aria-label="Karakteri özelleştir" aria-expanded="false" title="Karakter profili">
+            <canvas id="profileIcon" width="40" height="40" aria-hidden="true"></canvas>
+          </button>
+          <button id="logout" class="secondary" type="button">Çıkış</button>
+        </div>
+        <nav class="tool-rail" aria-label="Ofis araçları">
+          <button class="tool-button" type="button" data-panel="chat" aria-label="Sohbeti aç veya kapat" aria-expanded="true" title="Sohbet">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-5.5A7.5 7.5 0 1 1 20 11.5Z"/><path d="M8 11h8M8 14h5"/></svg>
+          </button>
+          <button class="tool-button" type="button" data-panel="people" aria-label="Katılımcıları göster" aria-expanded="false" title="Katılımcılar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5a3.5 3.5 0 0 1 0 6.8M18 14a5.5 5.5 0 0 1 3.5 5"/></svg>
+          </button>
+          <button class="tool-button" type="button" data-panel="help" aria-label="Kontroller ve yardım" aria-expanded="false" title="Yardım">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 1 1 4.1 1.9c-1 .8-1.7 1.2-1.7 2.6M12 17h.01"/></svg>
+          </button>
+          <button id="zoomIn" class="tool-button" type="button" aria-label="Yakınlaştır" title="Yakınlaştır">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.3"/><path d="M16.2 16.2 21 21M10.8 7.5v6.6M7.5 10.8h6.6"/></svg>
+          </button>
+          <button id="zoomOut" class="tool-button" type="button" aria-label="Uzaklaştır" title="Uzaklaştır">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.3"/><path d="M16.2 16.2 21 21M7.5 10.8h6.6"/></svg>
+          </button>
+          <button id="fullscreenToggle" class="tool-button" type="button" aria-label="Tam ekranı aç" title="Tam ekran">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg>
+          </button>
+        </nav>
+        <aside id="profilePanel" class="profile-panel hidden" aria-labelledby="profileTitle">
+          <div class="panel-heading">
+            <h2 id="profileTitle">Karakterini özelleştir</h2>
+            <button id="profileClose" class="panel-close" type="button" aria-label="Profili kapat">×</button>
+          </div>
+          <div class="profile-preview">
+            <canvas id="profilePreview" width="64" height="64" aria-hidden="true"></canvas>
+            <span>Değişiklikler kaydedilince tüm oyunculara yansır.</span>
+          </div>
+          <form id="profileForm">
+            <label class="select-field">Karakter
+              <select id="avatarModel">
+                <option value="business-man">Yönetici - Takım elbisesi</option>
+                <option value="man-in-suit">Ofis çalışanı - Takım elbisesi</option>
+                <option value="woman-dress">Ofis çalışanı - Elbise</option>
+                <option value="woman-casual">Ofis çalışanı - Günlük</option>
+                <option value="woman">Ofis çalışanı - Ceket</option>
+                <option value="worker">Teknik ekip - Yelek</option>
+              </select>
+            </label>
+            <div class="color-fields">
+              <label>Giysi<input id="bodyColor" type="color" value="#d95763"></label>
+              <label>Ten<input id="skinColor" type="color" value="#e8b58f"></label>
+              <label>Saç<input id="hairColor" type="color" value="#49332e"></label>
+            </div>
+            <label class="select-field">Saç modeli
+              <select id="hairStyle">
+                <option value="short">Kısa</option>
+                <option value="long">Uzun</option>
+                <option value="bun">Topuz</option>
+                <option value="cap">Şapka</option>
+              </select>
+            </label>
+            <label class="select-field">Aksesuar
+              <select id="accessory">
+                <option value="none">Yok</option>
+                <option value="glasses">Gözlük</option>
+              </select>
+            </label>
+            <button id="saveCharacter" type="submit">Karakteri kaydet</button>
+            <p id="profileStatus" role="status" aria-live="polite"></p>
+          </form>
+        </aside>
+        <aside id="chatPanel" class="side-panel chat-panel" aria-label="Google Chat">
+          <div id="globalChatView" class="chat-view">
+            <div class="panel-heading">
+              <h2>Google Chat</h2>
+              <button class="panel-close" type="button" data-close-panel="chat" aria-label="Sohbeti kapat">×</button>
+            </div>
+            <div id="chatHint">Ortak Google Chat alanı.</div>
+            <div id="chatMessages" aria-live="polite"></div>
+            <form id="chatForm">
+              <input id="chatInput" maxlength="4000" placeholder="Mesaj yazın..." autocomplete="off" required>
+              <button type="submit">Gönder</button>
+            </form>
+          </div>
+          <div id="pairChatView" class="chat-view hidden" aria-label="Yakın kullanıcıyla özel sohbet">
+            <div class="panel-heading">
+              <h2 id="pairChatTitle">Yakın Sohbet</h2>
+              <button class="panel-close" type="button" data-close-panel="chat" aria-label="Sohbeti kapat">×</button>
+            </div>
+            <div id="pairChatHint">Bu sohbet yalnızca siz ve yanınızdaki kullanıcıya görünür.</div>
+            <div id="pairChatMessages" aria-live="polite"></div>
+            <form id="pairChatForm">
+              <input id="pairChatInput" maxlength="1000" placeholder="Özel mesaj yazın..." autocomplete="off" required>
+              <button type="submit">Gönder</button>
+            </form>
+          </div>
+        </aside>
+        <aside id="peoplePanel" class="side-panel hidden" aria-label="Katılımcılar">
+          <div class="panel-heading">
+            <h2>Ofistekiler <span id="peopleCount"></span></h2>
+            <button class="panel-close" type="button" data-close-panel="people" aria-label="Katılımcıları kapat">×</button>
+          </div>
+          <div id="peopleList" aria-live="polite"></div>
+        </aside>
+        <aside id="helpPanel" class="side-panel hidden" aria-label="Kontroller">
+          <div class="panel-heading">
+            <h2>Kontroller</h2>
+            <button class="panel-close" type="button" data-close-panel="help" aria-label="Yardımı kapat">×</button>
+          </div>
+          <p class="panel-copy">Ofiste gezinmek için ok tuşlarını veya WASD tuşlarını kullanın. Shift ile hızlanın; haritayı fare tekerleğiyle yakınlaştırıp uzaklaştırın, sürükleyerek kaydırın.</p>
+          <p class="panel-copy">Sandalyeye yaklaşınca Otur düğmesine tıklayın. Ayağa kalkmak için düğmeye yeniden tıklayın veya hareket tuşlarını kullanın; dolu sandalyeye oturulamaz.</p>
+          <p class="panel-copy">Kahve makinesine yaklaşıp Kahve iç düğmesine tıklayın; karakteriniz kısa bir içme animasyonu oynatır.</p>
+          <p class="panel-copy">Kapılar yaklaşınca açılır. Toplantı odasında sol üstteki kilit simgesiyle odayı kilitleyebilir veya açabilirsiniz; kilitli odaya yeni katılımcı giremez.</p>
+          <p class="panel-copy">Bir toplantı odasına girince o odanın Meet bağlantısı kullanılabilir. Katılım ve mikrofon/kamera kontrolleri Meet penceresinde yapılır.</p>
+        </aside>
+        <div id="meetDock" class="meet-dock hidden" role="toolbar" aria-label="Görüşme kontrolleri">
+          <button id="joinMeet" type="button" aria-label="Google Meet'e katıl" title="Google Meet'e katıl" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><path d="M3 12h12M10 7l5 5-5 5"/></svg>
+          </button>
+          <button id="micControl" class="secondary" type="button" aria-label="Meet mikrofon kontrolleri" title="Meet mikrofon kontrolleri" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg>
+          </button>
+          <button id="cameraControl" class="secondary" type="button" aria-label="Meet kamera kontrolleri" title="Meet kamera kontrolleri" disabled>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="12" height="12" rx="2"/><path d="m15 10 6-3v10l-6-3"/></svg>
+          </button>
+        </div>
+        <p id="status" role="status" aria-live="polite"></p>
+        <div id="meetingInviteModal" class="meeting-invite hidden" role="dialog" aria-modal="true" aria-labelledby="meetingInviteTitle">
+          <div class="meeting-invite-card">
+            <h2 id="meetingInviteTitle">Toplantı daveti</h2>
+            <p id="meetingInviteMessage"></p>
+            <div class="meeting-invite-actions">
+              <button id="declineMeetingInvite" class="secondary" type="button">Reddet</button>
+              <button id="acceptMeetingInvite" type="button">Toplantıya katıl</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/map-layout.js"></script>
+  <script src="/api/server/socket.io/socket.io.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/examples/jsm/"
+      }
+    }
+  </script>
+  <script type="module">
+    import { Office3DScene } from '/office-3d.js';
+
+    const login = document.getElementById('login');
+    const game = document.getElementById('game');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+    const googleLogin = document.getElementById('googleLogin');
+    const canvas = document.getElementById('world');
+    const ctx = canvas.getContext('2d');
+    const status = document.getElementById('status');
+    const meetDock = document.getElementById('meetDock');
+    const roomLockButton = document.getElementById('roomLockButton');
+    const seatPrompt = document.getElementById('seatPrompt');
+    const coffeePrompt = document.getElementById('coffeePrompt');
+    const lockedIcon = document.getElementById('lockedIcon');
+    const unlockedIcon = document.getElementById('unlockedIcon');
+    const joinMeet = document.getElementById('joinMeet');
+    const micControl = document.getElementById('micControl');
+    const cameraControl = document.getElementById('cameraControl');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatHint = document.getElementById('chatHint');
+    const chatForm = document.getElementById('chatForm');
+    const chatPanel = document.getElementById('chatPanel');
+    const globalChatView = document.getElementById('globalChatView');
+    const pairChatView = document.getElementById('pairChatView');
+    const pairChatTitle = document.getElementById('pairChatTitle');
+    const pairChatMessages = document.getElementById('pairChatMessages');
+    const pairChatForm = document.getElementById('pairChatForm');
+    const pairChatInput = document.getElementById('pairChatInput');
+    const meetingInviteModal = document.getElementById('meetingInviteModal');
+    const meetingInviteMessage = document.getElementById('meetingInviteMessage');
+    const peoplePanel = document.getElementById('peoplePanel');
+    const helpPanel = document.getElementById('helpPanel');
+    const peopleList = document.getElementById('peopleList');
+    const peopleCount = document.getElementById('peopleCount');
+    const profileToggle = document.getElementById('profileToggle');
+    const profilePanel = document.getElementById('profilePanel');
+    const profileForm = document.getElementById('profileForm');
+    const profileStatus = document.getElementById('profileStatus');
+    const profileIcon = document.getElementById('profileIcon');
+    const profilePreview = document.getElementById('profilePreview');
+    const saveCharacterButton = document.getElementById('saveCharacter');
+    const toolButtons = Array.from(document.querySelectorAll('[data-panel]'));
+    const panels = { chat: chatPanel, people: peoplePanel, help: helpPanel };
+    let socket;
+    let selfId;
+    let self = { x: 70, y: 100 };
+    let selfSitting = false;
+    let selfDrinkingCoffee = false;
+    let nearbySeatId = null;
+    let seatRequestPending = false;
+    let coffeeRequestPending = false;
+    let lastSeatPromptUpdate = 0;
+    let lastCoffeePromptUpdate = 0;
+    let roomLocks = {};
+    let activeCharacter;
+    let office3d = null;
+    let remotePlayers = [];
+    let activeContext = { key: 'none', mode: 'none' };
+    let chatTimer;
+    let lastContextKey = '';
+    let lastLocationKey = '';
+    let currentPairChatKey = null;
+    let panelBeforePairChat = null;
+    let pendingOutgoingPairKey = null;
+    let acceptedPairMeetingKey = null;
+    let currentMeetingInvite = null;
+    let messageIconHitbox = null;
+    const pressedKeys = new Set();
+    const movementDirections = {
+      arrowup: 'up', w: 'up',
+      arrowdown: 'down', s: 'down',
+      arrowleft: 'left', a: 'left',
+      arrowright: 'right', d: 'right'
+    };
+    let facing = 'down';
+    let lastFrameTime = 0;
+    let lastDrawTime = 0;
+    let lastMoveSentAt = 0;
+    let lastLockNoticeTime = 0;
+    let lastSentPosition = { x: null, y: null, direction: 'down', moving: false };
+    let gameLoopStarted = false;
+    let lastPeopleSignature = '';
+    let zoomLevel = 1;
+    let panX = 0;
+    let panY = 0;
+    let pointerDrag;
+    const MAP_LAYOUT = window.GatherMapLayout;
+    const WORLD = MAP_LAYOUT.WORLD;
+    const MIN_ZOOM = 0.75;
+    const MAX_ZOOM = 3;
+    const OFFICE = MAP_LAYOUT.OFFICE;
+    const MEETING_ROOMS = MAP_LAYOUT.ROOMS;
+    const SEATS = MAP_LAYOUT.SEATS;
+    const COFFEE_STATION = MAP_LAYOUT.COFFEE_STATION;
+    const doorProgress = new Map(MAP_LAYOUT.DOORS.map((door) => [door.id, 0]));
+    let lastDoorFrameTime = 0;
+    const mapCanvas = document.createElement('canvas');
+    mapCanvas.width = WORLD.width;
+    mapCanvas.height = WORLD.height;
+    const mapCtx = mapCanvas.getContext('2d');
+    const idleSprite = new Image();
+    const walkSprite = new Image();
+    const coffeeMachineSprite = new Image();
+    const spriteBuffer = document.createElement('canvas');
+    spriteBuffer.width = 32;
+    spriteBuffer.height = 32;
+    const spriteBufferContext = spriteBuffer.getContext('2d');
+    let spritesReady = false;
+
+    function checkCharacterSprites() {
+      if (!idleSprite.complete || !walkSprite.complete ||
+          !idleSprite.naturalWidth || !walkSprite.naturalWidth) return;
+      spritesReady = true;
+      if (activeCharacter) {
+        renderProfileIcon(activeCharacter);
+        draw();
+      }
+    }
+
+    for (const sprite of [idleSprite, walkSprite]) {
+      sprite.addEventListener('load', checkCharacterSprites);
+      sprite.addEventListener('error', () => {
+        console.error(`Karakter görseli yüklenemedi: ${sprite.src}`);
+        if (!game.classList.contains('hidden')) {
+          showStatus('Karakter görselleri yüklenemedi; public/assets/characters klasörünü kontrol edin.', true);
+        }
+      });
+    }
+    idleSprite.src = '/assets/characters/Idle.png';
+    walkSprite.src = '/assets/characters/Walk.png';
+    coffeeMachineSprite.addEventListener('load', () => {
+      if (!game.classList.contains('hidden')) {
+        renderStaticMap();
+        draw();
+      }
+    });
+    coffeeMachineSprite.addEventListener('error', () => {
+      console.error(`Kahve makinesi görseli yüklenemedi: ${coffeeMachineSprite.src}`);
+      if (!game.classList.contains('hidden')) {
+        showStatus('Kahve makinesi görseli public/assets/coffee-maker.png konumundan yüklenemedi.', true);
+      }
+    });
+    coffeeMachineSprite.src = '/assets/coffee-maker.png';
+
+    async function request(url, options = {}) {
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        ...options
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `İstek başarısız (${response.status}).`);
+      return data;
+    }
+
+    function showStatus(message, isError = false) {
+      status.textContent = message;
+      status.style.color = isError ? '#fca5a5' : '#86efac';
+    }
+
+    function drawTiledFloor(area, palette, tileWidth, tileHeight) {
+      mapCtx.save();
+      mapCtx.beginPath();
+      mapCtx.rect(area.x, area.y, area.width, area.height);
+      mapCtx.clip();
+      mapCtx.fillStyle = palette[0];
+      mapCtx.fillRect(area.x, area.y, area.width, area.height);
+      const startX = Math.floor(area.x / tileWidth) * tileWidth;
+      const startY = Math.floor(area.y / tileHeight) * tileHeight;
+      let row = 0;
+      for (let y = startY; y < area.y + area.height; y += tileHeight, row += 1) {
+        const offset = row % 2 ? tileWidth / 2 : 0;
+        for (let x = startX - tileWidth; x < area.x + area.width; x += tileWidth) {
+          const tileX = x + offset;
+          const colorIndex = ((row + Math.floor(x / tileWidth)) % palette.length + palette.length) % palette.length;
+          mapCtx.fillStyle = palette[colorIndex];
+          mapCtx.fillRect(tileX + 1, y + 1, tileWidth - 2, tileHeight - 2);
+          mapCtx.strokeStyle = '#9b765b38';
+          mapCtx.lineWidth = 1;
+          mapCtx.strokeRect(tileX + 0.5, y + 0.5, tileWidth, tileHeight);
+        }
+      }
+      mapCtx.restore();
+    }
+
+    function drawChair(x, y, color = '#3e4a5d') {
+      mapCtx.fillStyle = '#463b34';
+      mapCtx.fillRect(x - 12, y - 2, 24, 22);
+      mapCtx.fillStyle = color;
+      mapCtx.fillRect(x - 10, y, 20, 15);
+      mapCtx.fillStyle = '#8794a2';
+      mapCtx.fillRect(x - 7, y + 3, 14, 2);
+      mapCtx.fillStyle = '#645247';
+      mapCtx.fillRect(x - 8, y + 18, 16, 3);
+    }
+
+    function drawDesk(x, y, width = 112) {
+      mapCtx.fillStyle = '#b98c60';
+      mapCtx.fillRect(x + 3, y + 5, width, 43);
+      mapCtx.fillStyle = '#e9bd82';
+      mapCtx.fillRect(x, y, width, 39);
+      mapCtx.strokeStyle = '#b47e4c';
+      mapCtx.lineWidth = 2;
+      mapCtx.strokeRect(x + 1, y + 1, width - 2, 37);
+      mapCtx.fillStyle = '#d5a56d';
+      mapCtx.fillRect(x + 4, y + 31, width - 8, 5);
+      mapCtx.fillStyle = '#353e4a';
+      mapCtx.fillRect(x + width / 2 - 11, y + 5, 22, 14);
+      mapCtx.fillStyle = '#7896aa';
+      mapCtx.fillRect(x + width / 2 - 8, y + 7, 16, 9);
+      mapCtx.fillStyle = '#444b55';
+      mapCtx.fillRect(x + width / 2 - 2, y + 19, 4, 5);
+      mapCtx.fillStyle = '#56606b';
+      mapCtx.fillRect(x + width / 2 - 13, y + 25, 26, 4);
+      drawChair(x + width / 2, y + 54);
+    }
+
+    function drawPlant(x, y, scale = 1) {
+      mapCtx.fillStyle = '#805a40';
+      mapCtx.fillRect(x - 9 * scale, y + 5 * scale, 18 * scale, 15 * scale);
+      mapCtx.fillStyle = '#bd8b63';
+      mapCtx.fillRect(x - 10 * scale, y + 3 * scale, 20 * scale, 4 * scale);
+      mapCtx.fillStyle = '#3c965e';
+      mapCtx.fillRect(x - 3 * scale, y - 15 * scale, 6 * scale, 21 * scale);
+      mapCtx.fillStyle = '#57b56d';
+      mapCtx.fillRect(x - 15 * scale, y - 12 * scale, 12 * scale, 7 * scale);
+      mapCtx.fillRect(x + 3 * scale, y - 18 * scale, 12 * scale, 7 * scale);
+      mapCtx.fillRect(x - 12 * scale, y - 22 * scale, 9 * scale, 7 * scale);
+      mapCtx.fillRect(x + 4 * scale, y - 7 * scale, 11 * scale, 7 * scale);
+    }
+
+    function drawMeetingRoom(room) {
+      drawTiledFloor(room, ['#899795', '#83918f', '#8e9b99'], 30, 26);
+      mapCtx.fillStyle = '#6e5c4c';
+      mapCtx.lineWidth = 8;
+      mapCtx.strokeStyle = '#6e5c4c';
+      mapCtx.strokeRect(room.x + 3, room.y + 3, room.width - 6, room.height - 6);
+      mapCtx.lineWidth = 2;
+      mapCtx.strokeStyle = '#d7b58b';
+      mapCtx.strokeRect(room.x + 8, room.y + 8, room.width - 16, room.height - 16);
+      mapCtx.fillStyle = '#282f39';
+      mapCtx.fillRect(room.x + room.width / 2 - 36, room.y + 22, 72, 10);
+      mapCtx.fillStyle = '#7da8bd';
+      mapCtx.fillRect(room.x + room.width / 2 - 31, room.y + 24, 62, 5);
+      const centerX = room.x + room.width / 2;
+      const centerY = room.y + room.height / 2 + 12;
+      mapCtx.fillStyle = '#98714f';
+      mapCtx.fillRect(centerX - 70, centerY - 27, 140, 56);
+      mapCtx.fillStyle = '#c99b69';
+      mapCtx.fillRect(centerX - 67, centerY - 25, 134, 50);
+      mapCtx.strokeStyle = '#9f754e';
+      mapCtx.lineWidth = 2;
+      mapCtx.strokeRect(centerX - 67, centerY - 25, 134, 50);
+      drawChair(centerX - 88, centerY - 8);
+      drawChair(centerX + 88, centerY - 8);
+      drawChair(centerX - 42, centerY + 45);
+      drawChair(centerX + 42, centerY + 45);
+      drawPlant(room.x + 28, room.y + room.height - 35, 0.8);
+      mapCtx.fillStyle = '#fff8ed';
+      mapCtx.fillRect(centerX - 62, room.y + 42, 124, 24);
+      mapCtx.fillStyle = '#665341';
+      mapCtx.font = 'bold 14px system-ui';
+      mapCtx.textAlign = 'center';
+      mapCtx.fillText(room.name, centerX, room.y + 59);
+      mapCtx.textAlign = 'left';
+    }
+
+    function drawCoffeeStation() {
+      mapCtx.fillStyle = '#b9875c';
+      mapCtx.fillRect(914, 378, 53, 91);
+      mapCtx.fillStyle = '#e3b77f';
+      mapCtx.fillRect(919, 383, 43, 80);
+      if (coffeeMachineSprite.complete && coffeeMachineSprite.naturalWidth) {
+        mapCtx.drawImage(coffeeMachineSprite, 0, 0, 32, 32, 912, 367, 64, 64);
+      } else {
+        mapCtx.fillStyle = '#252b39';
+        mapCtx.fillRect(927, 390, 27, 38);
+        mapCtx.fillStyle = '#5c80ad';
+        mapCtx.fillRect(932, 396, 17, 7);
+        mapCtx.fillStyle = '#a86d42';
+        mapCtx.fillRect(933, 412, 14, 3);
+        mapCtx.fillStyle = '#e7e2d4';
+        mapCtx.fillRect(934, 421, 12, 6);
+      }
+      mapCtx.fillStyle = '#70543c';
+      mapCtx.font = 'bold 11px system-ui';
+      mapCtx.fillText('KAHVE', 922, 455);
+    }
+
+    function renderStaticMap() {
+      drawTiledFloor({ x: 0, y: 0, width: WORLD.width, height: WORLD.height }, ['#efd3ad', '#f2d9b8', '#eacba4'], 40, 28);
+      drawTiledFloor(OFFICE, ['#f0d4ad', '#f4dcbf', '#ecd0a8'], 36, 27);
+      mapCtx.fillStyle = '#b88e68';
+      mapCtx.fillRect(1000, 20, 20, 860);
+      mapCtx.fillRect(1290, 20, 20, 860);
+      mapCtx.fillRect(1020, 430, 560, 40);
+      mapCtx.strokeStyle = '#b17d50';
+      mapCtx.lineWidth = 7;
+      mapCtx.strokeRect(OFFICE.x + 2, OFFICE.y + 2, OFFICE.width - 4, OFFICE.height - 4);
+      mapCtx.lineWidth = 2;
+      mapCtx.strokeStyle = '#f9e3c5';
+      mapCtx.strokeRect(OFFICE.x + 8, OFFICE.y + 8, OFFICE.width - 16, OFFICE.height - 16);
+
+      for (const room of MEETING_ROOMS) drawMeetingRoom(room);
+
+      const deskColumns = [88, 270, 452, 634, 816];
+      const deskRows = [170, 315, 612, 772];
+      for (const y of deskRows) {
+        for (const x of deskColumns) drawDesk(x, y);
+      }
+
+      mapCtx.fillStyle = '#dbe2ef';
+      mapCtx.fillRect(375, 390, 265, 190);
+      mapCtx.strokeStyle = '#a4b0c1';
+      mapCtx.lineWidth = 4;
+      mapCtx.strokeRect(377, 392, 261, 186);
+      for (let x = 382; x < 640; x += 24) {
+        mapCtx.strokeStyle = '#b5c2d2';
+        mapCtx.lineWidth = 1;
+        mapCtx.beginPath();
+        mapCtx.moveTo(x, 394);
+        mapCtx.lineTo(x, 576);
+        mapCtx.stroke();
+      }
+      mapCtx.fillStyle = '#d5a16e';
+      mapCtx.fillRect(438, 454, 140, 48);
+      mapCtx.fillStyle = '#79b6cc';
+      mapCtx.fillRect(448, 463, 120, 10);
+      drawChair(418, 461);
+      drawChair(598, 461);
+      drawChair(458, 528);
+      drawChair(558, 528);
+      drawPlant(390, 428, 0.9);
+      drawPlant(625, 543, 0.9);
+      mapCtx.fillStyle = '#f6e8d7';
+      mapCtx.fillRect(43, 42, 185, 27);
+      mapCtx.fillStyle = '#694d38';
+      mapCtx.font = 'bold 16px system-ui';
+      mapCtx.fillText('AÇIK OFİS', 55, 61);
+      mapCtx.fillStyle = '#8b7055';
+      mapCtx.font = '12px system-ui';
+      mapCtx.fillText('Ortak çalışma alanı', 55, 80);
+
+      drawPlant(45, 205, 1.15);
+      drawPlant(950, 280, 1.15);
+      drawPlant(46, 825, 1.1);
+      drawCoffeeStation();
+      drawDoorOpenings();
+    }
+
+    function drawDoorOpenings() {
+      for (const door of MAP_LAYOUT.DOORS) {
+        mapCtx.fillStyle = '#d5bd96';
+        mapCtx.fillRect(door.opening.x, door.opening.y, door.opening.width, door.opening.height);
+        mapCtx.fillStyle = '#765338';
+        if (door.orientation === 'vertical') {
+          mapCtx.fillRect(door.opening.x, door.opening.y, door.opening.width, 3);
+          mapCtx.fillRect(door.opening.x, door.opening.y + door.opening.height - 3, door.opening.width, 3);
+        } else {
+          mapCtx.fillRect(door.opening.x, door.opening.y, 3, door.opening.height);
+          mapCtx.fillRect(door.opening.x + door.opening.width - 3, door.opening.y, 3, door.opening.height);
+        }
+      }
+    }
+
+    function drawAnimatedDoors(now) {
+      const elapsed = lastDoorFrameTime ? Math.min((now - lastDoorFrameTime) / 1000, 0.05) : 0.05;
+      lastDoorFrameTime = now;
+      for (const door of MAP_LAYOUT.DOORS) {
+        const locked = Boolean(roomLocks[door.roomId]);
+        const nearby = remotePlayers.some((player) =>
+          (!locked || (player.id === selfId && player.roomId === door.roomId)) &&
+          Math.hypot(player.x - door.x, player.y - door.y) < 70
+        );
+        const progress = doorProgress.get(door.id) || 0;
+        const nextProgress = progress + ((nearby ? 1 : 0) - progress) * Math.min(1, elapsed * 8);
+        doorProgress.set(door.id, nextProgress);
+
+        ctx.save();
+        ctx.fillStyle = '#755239';
+        ctx.strokeStyle = '#4d3827';
+        ctx.lineWidth = 1.5;
+        if (door.orientation === 'vertical') {
+          ctx.translate(door.x, door.y - 22);
+          ctx.rotate(-Math.PI / 2 * nextProgress);
+          ctx.fillRect(-3, 0, 6, 44);
+          ctx.strokeRect(-3, 0, 6, 44);
+        } else {
+          ctx.translate(door.x - 22, door.y);
+          ctx.rotate(Math.PI / 2 * nextProgress);
+          ctx.fillRect(0, -3, 44, 6);
+          ctx.strokeRect(0, -3, 44, 6);
+        }
+        ctx.restore();
+      }
+    }
+
+    function enterGame(user, character) {
+      login.classList.add('hidden');
+      game.classList.remove('hidden');
+      document.getElementById('userName').textContent = user.name;
+      activeCharacter = character;
+      fillCharacterForm(character);
+      renderProfileIcon(character);
+      try {
+        office3d = new Office3DScene(
+          document.querySelector('.play-area'),
+          canvas,
+          MAP_LAYOUT,
+          (message) => showStatus(message, true)
+        );
+        office3d.initialize().then(() => {
+          renderProfileIcon(activeCharacter);
+          draw();
+        }).catch((error) => {
+          console.error('3D ofis sahnesi yüklenemedi:', error);
+          showStatus(`3D ofis sahnesi yüklenemedi: ${error.message}`, true);
+          const failedScene = office3d;
+          office3d = null;
+          failedScene.renderer.dispose();
+          failedScene.renderer.domElement.remove();
+          renderStaticMap();
+          draw();
+        });
+      } catch (error) {
+        console.error('WebGL başlatılamadı:', error);
+        showStatus(`3D sahne başlatılamadı: ${error.message}`, true);
+        office3d = null;
+        renderStaticMap();
+      }
+      socket = window.io({
+        path: '/api/server/socket.io',
+        transports: ['websocket']
+      });
+      socket.on('connect', () => {
+        selfId = socket.id;
+        showStatus('Bağlandı. Hareket etmek için ok tuşlarını veya WASD kullanın.');
+        resizeCanvas();
+        if (!gameLoopStarted) {
+          gameLoopStarted = true;
+          lastFrameTime = performance.now();
+          requestAnimationFrame(gameLoop);
+        }
+      });
+      socket.on('connect_error', (error) => showStatus(error.message, true));
+      socket.on('serverError', (message) => showStatus(message, true));
+      socket.on('disconnect', () => {
+        seatRequestPending = false;
+        coffeeRequestPending = false;
+        selfSitting = false;
+        selfDrinkingCoffee = false;
+        updateSeatPrompt();
+        updateCoffeePrompt();
+      });
+      socket.on('meetingRequest', showMeetingInvite);
+      socket.on('meetingInviteSent', (details) => {
+        showStatus(`${details.peerName} kullanıcısına toplantı isteği gönderildi.`);
+      });
+      socket.on('meetingRequestError', (message) => {
+        pendingOutgoingPairKey = null;
+        updateMeetButton(activeContext);
+        showStatus(message, true);
+      });
+      socket.on('meetingInviteResult', handleMeetingInviteResult);
+      socket.on('meetingInviteExpired', handleMeetingInviteExpired);
+      socket.on('meetingInviteCancelled', handleMeetingInviteCancelled);
+      socket.on('peerOpenedPairChat', (details) => {
+        if (activeContext.mode === 'pair' &&
+            (activeContext.pairKey || activeContext.key) === details.pairKey) {
+          openPairChat(details.pairKey, details.peerName, false);
+        }
+      });
+      socket.on('pairChatHistory', renderPairChatHistory);
+      socket.on('pairChatMessage', renderPairChatEvent);
+      socket.on('pairChatError', (message) => showStatus(message, true));
+      socket.on('roomLocks', (locks) => {
+        roomLocks = locks || {};
+        if (activeContext.mode === 'room') {
+          updateRoomLockButton(Boolean(roomLocks[activeContext.roomId]));
+        }
+        draw();
+      });
+      socket.on('roomLockError', (message) => showStatus(message, true));
+      socket.on('roomEntryBlocked', (message) => showStatus(message, true));
+      socket.on('sitError', (message) => {
+        seatRequestPending = false;
+        updateSeatPrompt();
+        showStatus(message, true);
+      });
+      socket.on('coffeeError', (message) => {
+        coffeeRequestPending = false;
+        updateCoffeePrompt();
+        showStatus(message, true);
+      });
+      socket.on('players', (players) => {
+        remotePlayers = players;
+        seatRequestPending = false;
+        const me = players.find((player) => player.id === selfId);
+        if (me) {
+          self = { x: me.x, y: me.y };
+          selfSitting = Boolean(me.sitting);
+          const wasDrinkingCoffee = selfDrinkingCoffee;
+          selfDrinkingCoffee = Boolean(me.drinkingCoffee);
+          if (selfDrinkingCoffee) coffeeRequestPending = false;
+          else if (wasDrinkingCoffee) showStatus('Kahve molası bitti. Afiyet olsun.');
+          facing = me.direction || facing;
+          lastSentPosition = {
+            x: me.x,
+            y: me.y,
+            direction: facing,
+            moving: Boolean(me.moving)
+          };
+          if (me.character && characterKey(me.character) !== characterKey(activeCharacter)) {
+            activeCharacter = me.character;
+            fillCharacterForm(activeCharacter);
+            renderProfileIcon(activeCharacter);
+          }
+        }
+        updateSeatPrompt();
+        updateCoffeePrompt();
+        renderPeople();
+        draw();
+      });
+      socket.on('context', setContext);
+      resizeCanvas();
+    }
+
+    function setContext(context) {
+      const locationChanged = context.key !== lastLocationKey;
+      const nextPairKey = context.mode === 'pair' ? (context.pairKey || context.key) : null;
+      if (pendingOutgoingPairKey && pendingOutgoingPairKey !== nextPairKey) pendingOutgoingPairKey = null;
+      if (acceptedPairMeetingKey && acceptedPairMeetingKey !== nextPairKey) acceptedPairMeetingKey = null;
+      lastLocationKey = context.key;
+      activeContext = context;
+
+      if (currentPairChatKey &&
+          (context.mode !== 'pair' || currentPairChatKey !== nextPairKey)) closePairChat();
+
+      roomLockButton.classList.toggle('hidden', context.mode !== 'room');
+      if (context.mode === 'room') {
+        updateRoomLockButton(Boolean(roomLocks[context.roomId] || context.locked));
+      }
+      meetDock.classList.toggle('hidden', context.mode === 'none');
+      updateMeetButton(context);
+      micControl.disabled = !context.meetUrl;
+      cameraControl.disabled = !context.meetUrl;
+      chatHint.textContent = context.chatSpaceName
+        ? 'Konumdan bağımsız ortak Google Chat alanı.'
+        : 'Sohbet için .env içindeki ROOM_CHAT_SPACE değerini ayarlayın.';
+      if (context.error) showStatus(`Google entegrasyonu: ${context.error}`, true);
+
+      const signature = context.chatSpaceName || 'no-global-chat';
+      if (signature !== lastContextKey) {
+        lastContextKey = signature;
+        chatMessages.replaceChildren();
+        clearInterval(chatTimer);
+        if (context.chatSpaceName) {
+          loadMessages();
+          chatTimer = setInterval(loadMessages, 5000);
+        }
+      }
+      if (locationChanged && context.mode === 'room') {
+        showStatus(`${context.label}: Meet'e katılın; mikrofon Meet içinden açılır.`);
+      } else if (locationChanged && context.mode === 'pair') {
+        showStatus('Yakınınızdaki kullanıcıya toplantı isteği gönderebilirsiniz.');
+      }
+    }
+
+    function openPairChat(pairKey, peerName, notifyPeer = true) {
+      if (activeContext.mode !== 'pair' ||
+          pairKey !== (activeContext.pairKey || activeContext.key)) return;
+      if (currentPairChatKey && currentPairChatKey !== pairKey) closePairChat();
+      if (!currentPairChatKey) {
+        panelBeforePairChat = Object.entries(panels)
+          .find(([, panel]) => !panel.classList.contains('hidden'))?.[0] || null;
+        currentPairChatKey = pairKey;
+        pairChatMessages.replaceChildren();
+        globalChatView.classList.add('hidden');
+        pairChatView.classList.remove('hidden');
+        if (socket?.connected) socket.emit('requestPairChatHistory', { pairKey });
+      }
+      pairChatTitle.textContent = `${peerName || activeContext.peerName || 'Yakındaki kullanıcı'} ile özel sohbet`;
+      setPanel('chat', true);
+      pairChatInput.focus();
+      if (notifyPeer && socket?.connected) socket.emit('openPairChat', { pairKey });
+    }
+
+    function closePairChat() {
+      if (!currentPairChatKey) return;
+      currentPairChatKey = null;
+      pairChatMessages.replaceChildren();
+      pairChatView.classList.add('hidden');
+      globalChatView.classList.remove('hidden');
+      const chatWasOpen = !chatPanel.classList.contains('hidden');
+      if (chatWasOpen) {
+        if (panelBeforePairChat) setPanel(panelBeforePairChat, true);
+        else setPanel('chat', false);
+      }
+      panelBeforePairChat = null;
+    }
+
+    function updateMeetButton(context) {
+      const pairKey = context.pairKey || context.key;
+      const accepted = context.mode === 'pair' && acceptedPairMeetingKey === pairKey;
+      const pending = context.mode === 'pair' && pendingOutgoingPairKey === pairKey;
+      joinMeet.disabled = !context.meetUrl || pending;
+      const label = context.mode === 'pair'
+        ? (accepted ? "Google Meet'e katıl" : pending ? 'İstek bekleniyor' : 'Toplantı isteği gönder')
+        : "Google Meet'e katıl";
+      joinMeet.setAttribute('aria-label', label);
+      joinMeet.title = label;
+    }
+
+    function showMeetingInvite(invite) {
+      if (!invite?.inviteId || !invite.pairKey || !invite.meetUrl) return;
+      currentMeetingInvite = invite;
+      meetingInviteMessage.textContent = `${invite.fromName} size bir toplantı isteği gönderdi. Katılmak ister misiniz?`;
+      meetingInviteModal.classList.remove('hidden');
+      document.getElementById('acceptMeetingInvite').focus();
+    }
+
+    function closeMeetingInvite() {
+      currentMeetingInvite = null;
+      meetingInviteModal.classList.add('hidden');
+    }
+
+    document.getElementById('acceptMeetingInvite').addEventListener('click', () => {
+      const invite = currentMeetingInvite;
+      if (!invite || !socket?.connected) return;
+      if (activeContext.mode !== 'pair' || currentPairChatKey !== invite.pairKey) {
+        socket.emit('respondMeetingRequest', {
+          inviteId: invite.inviteId,
+          pairKey: invite.pairKey,
+          accepted: false
+        });
+        closeMeetingInvite();
+        showStatus('Toplantı daveti artık geçerli değil.', true);
+        return;
+      }
+
+      acceptedPairMeetingKey = invite.pairKey;
+      updateMeetButton(activeContext);
+      openMeet(invite.meetUrl);
+      socket.emit('respondMeetingRequest', {
+        inviteId: invite.inviteId,
+        pairKey: invite.pairKey,
+        accepted: true
+      });
+      closeMeetingInvite();
+    });
+
+    document.getElementById('declineMeetingInvite').addEventListener('click', () => {
+      const invite = currentMeetingInvite;
+      if (invite && socket?.connected) {
+        socket.emit('respondMeetingRequest', {
+          inviteId: invite.inviteId,
+          pairKey: invite.pairKey,
+          accepted: false
+        });
+      }
+      closeMeetingInvite();
+    });
+
+    function handleMeetingInviteResult(result) {
+      if (pendingOutgoingPairKey === result.pairKey) pendingOutgoingPairKey = null;
+      if (result.accepted && activeContext.mode === 'pair' &&
+          (activeContext.pairKey || activeContext.key) === result.pairKey) {
+        acceptedPairMeetingKey = result.pairKey;
+      }
+      updateMeetButton(activeContext);
+      if (result.accepted) {
+        showStatus(result.recipient
+          ? 'Toplantı isteğini kabul ettiniz.'
+          : `${result.peerName} toplantı isteğini kabul etti. Meet simgesine tıklayarak katılabilirsiniz.`);
+      } else {
+        showStatus(`${result.peerName} toplantı isteğini reddetti.`, true);
+      }
+    }
+
+    function handleMeetingInviteExpired(details) {
+      if (pendingOutgoingPairKey === details.pairKey) pendingOutgoingPairKey = null;
+      updateMeetButton(activeContext);
+      showStatus('Toplantı isteğinin süresi doldu.', true);
+    }
+
+    function handleMeetingInviteCancelled(details) {
+      if (currentMeetingInvite?.inviteId === details.inviteId ||
+          currentMeetingInvite?.pairKey === details.pairKey) {
+        closeMeetingInvite();
+      }
+      if (pendingOutgoingPairKey === details.pairKey) pendingOutgoingPairKey = null;
+      updateMeetButton(activeContext);
+    }
+
+    function appendPairChatMessage(message) {
+      const item = document.createElement('div');
+      item.className = 'message';
+      const author = document.createElement('strong');
+      author.textContent = message.senderId === selfId ? 'Siz' : message.senderName;
+      const body = document.createElement('div');
+      body.textContent = message.text;
+      const time = document.createElement('time');
+      time.textContent = message.createTime ? new Date(message.createTime).toLocaleTimeString('tr-TR') : '';
+      item.append(author, body, time);
+      pairChatMessages.append(item);
+      pairChatMessages.scrollTop = pairChatMessages.scrollHeight;
+    }
+
+    function renderPairChatHistory(payload) {
+      if (payload.pairKey !== currentPairChatKey) return;
+      pairChatMessages.replaceChildren();
+      for (const message of payload.messages || []) appendPairChatMessage(message);
+    }
+
+    function renderPairChatEvent(payload) {
+      if (payload.pairKey === currentPairChatKey) appendPairChatMessage(payload.message);
+    }
+
+    pairChatForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const text = pairChatInput.value.trim();
+      if (!text || !currentPairChatKey || !socket?.connected) return;
+      socket.emit('pairChatMessage', { pairKey: currentPairChatKey, text });
+      pairChatInput.value = '';
+    });
+
+    function updateRoomLockButton(locked) {
+      roomLockButton.classList.toggle('locked', locked);
+      lockedIcon.classList.toggle('hidden', !locked);
+      unlockedIcon.classList.toggle('hidden', locked);
+      roomLockButton.setAttribute('aria-pressed', String(locked));
+      const label = locked ? 'Oda kilidini aç' : 'Odayı kilitle';
+      roomLockButton.setAttribute('aria-label', label);
+      roomLockButton.title = label;
+    }
+
+    roomLockButton.addEventListener('click', () => {
+      if (activeContext.mode === 'room' && socket?.connected) {
+        socket.emit('toggleRoomLock', activeContext.roomId);
+      }
+    });
+
+    function characterKey(character) {
+      if (!character) return '';
+      return [
+        character.modelId,
+        character.bodyColor,
+        character.skinColor,
+        character.hairColor,
+        character.hairStyle,
+        character.accessory
+      ].join('|');
+    }
+
+    function renderPeople() {
+      peopleCount.textContent = `(${remotePlayers.length})`;
+      const signature = remotePlayers
+        .map((player) => `${player.id}:${player.name}:${player.online ? 1 : 0}:${characterKey(player.character)}`)
+        .join(';');
+      if (signature === lastPeopleSignature) return;
+      lastPeopleSignature = signature;
+      peopleList.replaceChildren();
+      if (!remotePlayers.length) {
+        const empty = document.createElement('p');
+        empty.className = 'panel-copy';
+        empty.textContent = 'Şu anda ofiste başka kimse yok.';
+        peopleList.append(empty);
+        return;
+      }
+
+      for (const player of remotePlayers) {
+        const item = document.createElement('div');
+        item.className = 'person-card';
+        const dot = document.createElement('span');
+        dot.className = `person-dot${player.online ? ' is-online' : ''}`;
+        dot.setAttribute('aria-label', player.online ? 'Çevrimiçi' : 'Çevrimdışı');
+        const name = document.createElement('span');
+        name.textContent = player.id === selfId ? `${player.name} (siz)` : player.name;
+        item.append(dot, name);
+        peopleList.append(item);
+      }
+    }
+
+    function updateSeatPrompt() {
+      if (!socket?.connected) {
+        nearbySeatId = null;
+        seatPrompt.classList.add('hidden');
+        return;
+      }
+      if (selfSitting) {
+        nearbySeatId = null;
+        seatPrompt.textContent = 'Ayağa kalk';
+        seatPrompt.setAttribute('aria-label', 'Sandalyeden kalk');
+        seatPrompt.disabled = seatRequestPending;
+        seatPrompt.classList.remove('hidden');
+        return;
+      }
+
+      const occupiedSeats = new Set(remotePlayers
+        .filter((player) => player.sitting && player.seatId)
+        .map((player) => player.seatId));
+      const nearbySeats = SEATS
+        .map((seat) => ({ seat, distance: Math.hypot(self.x - seat.x, self.y - seat.y) }))
+        .filter((entry) => entry.distance <= 54)
+        .sort((first, second) => first.distance - second.distance);
+      const availableSeat = nearbySeats.find((entry) => !occupiedSeats.has(entry.seat.id));
+      const target = availableSeat || nearbySeats[0];
+      if (!target) {
+        nearbySeatId = null;
+        seatPrompt.classList.add('hidden');
+        return;
+      }
+
+      nearbySeatId = availableSeat ? target.seat.id : null;
+      seatPrompt.textContent = availableSeat ? 'Otur' : 'Dolu';
+      seatPrompt.setAttribute('aria-label', availableSeat ? 'Sandalyeye otur' : 'Sandalye dolu');
+      seatPrompt.disabled = seatRequestPending || !availableSeat;
+      seatPrompt.classList.remove('hidden');
+    }
+
+    function updateCoffeePrompt() {
+      if (!socket?.connected) {
+        coffeePrompt.classList.add('hidden');
+        return;
+      }
+      const inOffice = self.x >= OFFICE.x && self.x <= OFFICE.x + OFFICE.width &&
+        self.y >= OFFICE.y && self.y <= OFFICE.y + OFFICE.height;
+      const distance = Math.hypot(self.x - COFFEE_STATION.x, self.y - COFFEE_STATION.y);
+      if ((!inOffice || distance > COFFEE_STATION.interactionRadius) && !selfDrinkingCoffee) {
+        coffeePrompt.classList.add('hidden');
+        return;
+      }
+      if (selfDrinkingCoffee) {
+        coffeePrompt.textContent = 'Kahve içiliyor…';
+        coffeePrompt.setAttribute('aria-label', 'Kahve içiliyor');
+        coffeePrompt.disabled = true;
+      } else if (selfSitting) {
+        coffeePrompt.textContent = 'Önce ayağa kalkın';
+        coffeePrompt.setAttribute('aria-label', 'Kahve içmek için önce ayağa kalkın');
+        coffeePrompt.disabled = true;
+      } else {
+        coffeePrompt.textContent = coffeeRequestPending ? 'Hazırlanıyor…' : 'Kahve iç';
+        coffeePrompt.setAttribute('aria-label', 'Kahve iç');
+        coffeePrompt.disabled = coffeeRequestPending;
+      }
+      coffeePrompt.classList.remove('hidden');
+    }
+
+    seatPrompt.addEventListener('click', () => {
+      if (!socket?.connected) {
+        showStatus('Sunucu bağlantısı yok.', true);
+        return;
+      }
+      if (!selfSitting && !nearbySeatId) return;
+      seatRequestPending = true;
+      seatPrompt.disabled = true;
+      socket.emit(selfSitting ? 'standUp' : 'sitDown', selfSitting ? undefined : { seatId: nearbySeatId });
+    });
+
+    coffeePrompt.addEventListener('click', () => {
+      if (!socket?.connected) {
+        showStatus('Sunucu bağlantısı yok.', true);
+        return;
+      }
+      if (selfDrinkingCoffee || coffeeRequestPending || selfSitting) return;
+      const distance = Math.hypot(self.x - COFFEE_STATION.x, self.y - COFFEE_STATION.y);
+      if (distance > COFFEE_STATION.interactionRadius) return;
+      coffeeRequestPending = true;
+      updateCoffeePrompt();
+      socket.emit('drinkCoffee');
+    });
+
+    function drawCharacterBody(target, x, y, character, scale = 1) {
+      const box = (color, dx, dy, width, height) => {
+        target.fillStyle = color;
+        target.fillRect(x + dx * scale, y + dy * scale, width * scale, height * scale);
+      };
+      box('#41362f55', -9, 9, 18, 5);
+      box('#473b37', -8, 2, 16, 16);
+      box(character.bodyColor, -7, 4, 14, 11);
+      box(character.skinColor, -6, -10, 12, 12);
+
+      if (character.hairStyle === 'long') {
+        box(character.hairColor, -8, -8, 3, 13);
+        box(character.hairColor, 5, -8, 3, 13);
+      }
+      box(character.hairColor, -7, -13, 14, 6);
+      if (character.hairStyle === 'bun') {
+        target.fillStyle = character.hairColor;
+        target.beginPath();
+        target.arc(x + 5 * scale, y - 13 * scale, 4 * scale, 0, Math.PI * 2);
+        target.fill();
+      } else if (character.hairStyle === 'cap') {
+        box(character.bodyColor, -8, -15, 16, 5);
+        box(character.bodyColor, -10, -11, 20, 3);
+      }
+      if (character.accessory === 'glasses') {
+        box('#27313b', -6, -5, 5, 3);
+        box('#27313b', 1, -5, 5, 3);
+        box('#27313b', -1, -4, 2, 1);
+      }
+    }
+
+    function drawCharacterSprite(target, x, y, character, direction = 'down', moving = false, now = performance.now(), scale = 1) {
+      if (!spritesReady) {
+        drawCharacterBody(target, x, y, character, scale);
+        return;
+      }
+
+      const sheet = moving ? walkSprite : idleSprite;
+      const row = direction === 'down' ? 0 : direction === 'up' ? 1 : 2;
+      const frameCount = Math.floor(sheet.width / 32);
+      const frameDuration = moving ? 100 : 280;
+      const frame = Math.floor(now / frameDuration) % frameCount;
+      spriteBufferContext.clearRect(0, 0, 32, 32);
+      spriteBufferContext.imageSmoothingEnabled = false;
+      spriteBufferContext.drawImage(sheet, frame * 32, row * 32, 32, 32, 0, 0, 32, 32);
+
+      spriteBufferContext.globalCompositeOperation = 'source-atop';
+      spriteBufferContext.globalAlpha = 0.7;
+      spriteBufferContext.fillStyle = character.hairColor;
+      spriteBufferContext.fillRect(8, row === 1 ? 4 : 3, 16, row === 1 ? 13 : 8);
+      if (row !== 1) {
+        spriteBufferContext.fillStyle = character.skinColor;
+        spriteBufferContext.fillRect(12, 10, 8, 8);
+      }
+      spriteBufferContext.fillStyle = character.bodyColor;
+      spriteBufferContext.fillRect(9, 18, 14, 8);
+      spriteBufferContext.globalAlpha = 1;
+      spriteBufferContext.globalCompositeOperation = 'source-over';
+
+      if (character.hairStyle === 'long') {
+        spriteBufferContext.fillStyle = character.hairColor;
+        spriteBufferContext.fillRect(7, 10, 3, 9);
+        spriteBufferContext.fillRect(22, 10, 3, 9);
+      } else if (character.hairStyle === 'bun') {
+        spriteBufferContext.fillStyle = character.hairColor;
+        spriteBufferContext.fillRect(20, 3, 6, 6);
+      } else if (character.hairStyle === 'cap') {
+        spriteBufferContext.fillStyle = character.bodyColor;
+        spriteBufferContext.fillRect(7, 3, 18, 6);
+        spriteBufferContext.fillRect(6, 8, 20, 3);
+      }
+      if (character.accessory === 'glasses' && row === 0) {
+        spriteBufferContext.fillStyle = '#27313b';
+        spriteBufferContext.fillRect(11, 12, 4, 2);
+        spriteBufferContext.fillRect(17, 12, 4, 2);
+        spriteBufferContext.fillRect(15, 12, 2, 1);
+      }
+
+      target.save();
+      target.imageSmoothingEnabled = false;
+      if (direction === 'right') {
+        target.translate(x * 2, 0);
+        target.scale(-1, 1);
+      }
+      target.drawImage(spriteBuffer, x - 16 * scale, y - 24 * scale, 32 * scale, 32 * scale);
+      target.restore();
+    }
+
+    function drawAvatar(player, now) {
+      const { x, y } = player;
+      const character = player.character || activeCharacter;
+      if (!character) return;
+      const isSelf = player.id === selfId;
+      if (player.sitting) {
+        drawSeatedCharacter(ctx, x, y, character, player.direction || 'down', now);
+      } else if (player.drinkingCoffee) {
+        drawCoffeeDrinkingCharacter(
+          ctx, x, y, character, player.direction || 'down', player.coffeeStartedAt, now
+        );
+      } else {
+        drawCharacterSprite(ctx, x, y, character, player.direction || 'down', Boolean(player.moving), now);
+      }
+
+      ctx.font = 'bold 13px system-ui';
+      const label = player.name || 'Kullanıcı';
+      const textWidth = ctx.measureText(label).width;
+      const labelWidth = textWidth + 26;
+      const labelX = x - labelWidth / 2;
+      const labelY = y - 39;
+      ctx.fillStyle = '#25252be8';
+      ctx.beginPath();
+      ctx.roundRect(labelX, labelY, labelWidth, 22, 6);
+      ctx.fill();
+      ctx.fillStyle = isSelf ? '#55df87' : '#71d28a';
+      ctx.beginPath();
+      ctx.arc(labelX + 10, labelY + 11, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'left';
+      ctx.fillText(label, labelX + 17, labelY + 15);
+
+      if (activeContext.mode === 'pair' && player.id === activeContext.peerId) {
+        drawPairChatIndicator(player.x, labelY - 25);
+      }
+    }
+
+    function drawSeatedCharacter(target, x, y, character, direction, now) {
+      const bob = Math.sin(now / 430) * 0.45;
+      target.save();
+      target.translate(0, y * 0.22 + bob);
+      target.scale(1, 0.78);
+      drawCharacterSprite(target, x, y, character, direction, false, now);
+      target.restore();
+
+      target.fillStyle = '#394453';
+      target.fillRect(x - 8, y + 1 + bob, 7, 4);
+      target.fillRect(x + 1, y + 1 + bob, 7, 4);
+      target.fillStyle = '#252b35';
+      target.fillRect(x - 8, y + 4 + bob, 6, 2);
+      target.fillRect(x + 2, y + 4 + bob, 6, 2);
+    }
+
+    function drawCoffeeDrinkingCharacter(target, x, y, character, direction, startedAt, now) {
+      const elapsed = Math.max(0, Date.now() - (startedAt || Date.now()));
+      const bob = Math.sin(elapsed / 260) * 0.45;
+      target.save();
+      target.translate(0, bob);
+      drawCharacterSprite(target, x, y, character, direction, false, now);
+      target.restore();
+
+      const cupX = direction === 'left' ? x - 16 : x + 8;
+      const cupY = y - 14 - (2 + Math.sin(elapsed / 240) * 2);
+      target.fillStyle = character.skinColor;
+      target.fillRect(cupX - 2, cupY + 3, 3, 4);
+      target.fillStyle = '#75452e';
+      target.fillRect(cupX, cupY, 7, 7);
+      target.fillStyle = '#f1d7ad';
+      target.fillRect(cupX + 1, cupY, 5, 2);
+      target.strokeStyle = '#75452e';
+      target.lineWidth = 1.5;
+      target.strokeRect(cupX + 6, cupY + 2, 3, 3);
+
+      target.save();
+      for (let index = 0; index < 2; index += 1) {
+        const phase = ((elapsed / 420 + index / 2) % 1);
+        target.globalAlpha = 1 - phase;
+        target.fillStyle = '#fff2d6';
+        target.fillRect(
+          cupX + 2 + Math.sin(elapsed / 180 + index) * 2,
+          cupY - 4 - phase * 7,
+          1.5,
+          1.5
+        );
+      }
+      target.restore();
+    }
+
+    function drawPairChatIndicator(x, y) {
+      const iconX = x - 11;
+      const iconY = y;
+      const isActive = currentPairChatKey === (activeContext.pairKey || activeContext.key);
+      ctx.fillStyle = isActive ? '#27844f' : '#252a34';
+      ctx.strokeStyle = isActive ? '#a4f3bd' : '#ffffffcc';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(iconX, iconY, 22, 18, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - 3, iconY + 17);
+      ctx.lineTo(x - 7, iconY + 22);
+      ctx.lineTo(x + 2, iconY + 17);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(iconX + 5, iconY + 6);
+      ctx.lineTo(iconX + 17, iconY + 6);
+      ctx.moveTo(iconX + 5, iconY + 11);
+      ctx.lineTo(iconX + 14, iconY + 11);
+      ctx.stroke();
+      messageIconHitbox = {
+        x: iconX - 2,
+        y: iconY - 2,
+        width: 26,
+        height: 24,
+        pairKey: activeContext.pairKey || activeContext.key,
+        peerName: activeContext.peerName
+      };
+    }
+
+    function readCharacterForm() {
+      return {
+        modelId: document.getElementById('avatarModel').value,
+        bodyColor: document.getElementById('bodyColor').value,
+        skinColor: document.getElementById('skinColor').value,
+        hairColor: document.getElementById('hairColor').value,
+        hairStyle: document.getElementById('hairStyle').value,
+        accessory: document.getElementById('accessory').value
+      };
+    }
+
+    function fillCharacterForm(character) {
+      document.getElementById('avatarModel').value = character.modelId || 'business-man';
+      document.getElementById('bodyColor').value = character.bodyColor;
+      document.getElementById('skinColor').value = character.skinColor;
+      document.getElementById('hairColor').value = character.hairColor;
+      document.getElementById('hairStyle').value = character.hairStyle;
+      document.getElementById('accessory').value = character.accessory;
+    }
+
+    function renderProfileIcon(character) {
+      if (office3d && office3d.renderPreview(character, [profileIcon, profilePreview])) return;
+      const iconContext = profileIcon.getContext('2d');
+      iconContext.clearRect(0, 0, profileIcon.width, profileIcon.height);
+      iconContext.fillStyle = '#efd3ad';
+      iconContext.fillRect(0, 0, profileIcon.width, profileIcon.height);
+      drawCharacterSprite(iconContext, 20, 32, character, 'down', false, performance.now(), 0.9);
+
+      const previewContext = profilePreview.getContext('2d');
+      previewContext.clearRect(0, 0, profilePreview.width, profilePreview.height);
+      previewContext.fillStyle = '#efd3ad';
+      previewContext.fillRect(0, 0, profilePreview.width, profilePreview.height);
+      drawCharacterSprite(previewContext, 32, 52, character, 'down', false, performance.now(), 1.25);
+    }
+
+    function draw(now = performance.now()) {
+      if (office3d) {
+        const baseScale = Math.min(canvas.width / WORLD.width, canvas.height / WORLD.height);
+        const scale = baseScale * zoomLevel;
+        const maxPanX = Math.max(0, (WORLD.width * scale - canvas.width) / (2 * scale));
+        const maxPanY = Math.max(0, (WORLD.height * scale - canvas.height) / (2 * scale));
+        panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
+        panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
+        office3d.render(remotePlayers, {
+          selfId,
+          roomLocks,
+          zoomLevel,
+          panX,
+          panY
+        }, now);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        messageIconHitbox = null;
+        for (const player of remotePlayers) {
+          const head = office3d.project(player.x, player.y, 52);
+          if (!head || head.x < -160 || head.x > canvas.width + 160 ||
+              head.y < -100 || head.y > canvas.height + 100) continue;
+          ctx.font = 'bold 13px system-ui';
+          const label = player.name || 'Kullanıcı';
+          const labelWidth = ctx.measureText(label).width + 26;
+          const labelX = head.x - labelWidth / 2;
+          const labelY = head.y - 25;
+          ctx.fillStyle = '#25252be8';
+          ctx.beginPath();
+          ctx.roundRect(labelX, labelY, labelWidth, 22, 6);
+          ctx.fill();
+          ctx.fillStyle = player.id === selfId ? '#55df87' : '#71d28a';
+          ctx.beginPath();
+          ctx.arc(labelX + 10, labelY + 11, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.textAlign = 'left';
+          ctx.fillText(label, labelX + 17, labelY + 15);
+          if (activeContext.mode === 'pair' && player.id === activeContext.peerId) {
+            drawPairChatIndicator(head.x, labelY - 25);
+          }
+        }
+        ctx.textAlign = 'left';
+        return;
+      }
+
+      const baseScale = Math.min(canvas.width / WORLD.width, canvas.height / WORLD.height);
+      const scale = baseScale * zoomLevel;
+      const maxPanX = Math.max(0, (WORLD.width * scale - canvas.width) / (2 * scale));
+      const maxPanY = Math.max(0, (WORLD.height * scale - canvas.height) / (2 * scale));
+      panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
+      panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
+      const offsetX = (canvas.width - WORLD.width * scale) / 2 + panX * scale;
+      const offsetY = (canvas.height - WORLD.height * scale) / 2 + panY * scale;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#efd3ad';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const tileSize = Math.max(16, Math.round(baseScale * 40));
+      for (let y = 0, row = 0; y < canvas.height; y += tileSize, row += 1) {
+        for (let x = 0, column = 0; x < canvas.width; x += tileSize, column += 1) {
+          if ((row + column) % 2) {
+            ctx.fillStyle = '#f2d9b8';
+            ctx.fillRect(x, y, tileSize, tileSize);
+          }
+          ctx.strokeStyle = '#c49b7740';
+          ctx.strokeRect(x + 0.5, y + 0.5, tileSize, tileSize);
+        }
+      }
+      ctx.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(mapCanvas, 0, 0);
+      drawAnimatedDoors(now);
+      messageIconHitbox = null;
+      for (const player of remotePlayers) drawAvatar(player, now);
+      ctx.textAlign = 'left';
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(1, Math.round(rect.width * pixelRatio));
+      const height = Math.max(1, Math.round(rect.height * pixelRatio));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+      if (office3d) office3d.resize(rect.width, rect.height, zoomLevel, panX, panY);
+      draw();
+    }
+
+    function setZoom(nextZoom, anchorX = canvas.width / 2, anchorY = canvas.height / 2) {
+      const baseScale = Math.min(canvas.width / WORLD.width, canvas.height / WORLD.height);
+      const oldScale = baseScale * zoomLevel;
+      const oldOffsetX = (canvas.width - WORLD.width * oldScale) / 2 + panX * oldScale;
+      const oldOffsetY = (canvas.height - WORLD.height * oldScale) / 2 + panY * oldScale;
+      const worldX = (anchorX - oldOffsetX) / oldScale;
+      const worldY = (anchorY - oldOffsetY) / oldScale;
+      zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, nextZoom));
+      const newScale = baseScale * zoomLevel;
+      panX = (anchorX - (canvas.width - WORLD.width * newScale) / 2) / newScale - worldX;
+      panY = (anchorY - (canvas.height - WORLD.height * newScale) / 2) / newScale - worldY;
+      document.getElementById('zoomIn').title = `Yakınlaştır (${Math.round(zoomLevel * 100)}%)`;
+      document.getElementById('zoomOut').title = `Uzaklaştır (${Math.round(zoomLevel * 100)}%)`;
+      draw();
+    }
+
+    document.getElementById('zoomIn').addEventListener('click', () => setZoom(zoomLevel * 1.2));
+    document.getElementById('zoomOut').addEventListener('click', () => setZoom(zoomLevel / 1.2));
+    canvas.addEventListener('wheel', (event) => {
+      event.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const anchorX = (event.clientX - rect.left) * canvas.width / rect.width;
+      const anchorY = (event.clientY - rect.top) * canvas.height / rect.height;
+      setZoom(zoomLevel * (event.deltaY < 0 ? 1.15 : 1 / 1.15), anchorX, anchorY);
+    }, { passive: false });
+
+    function messageIconAtClientPoint(clientX, clientY) {
+      if (!messageIconHitbox) return null;
+      const rect = canvas.getBoundingClientRect();
+      if (office3d) {
+        const x = (clientX - rect.left) * canvas.width / rect.width;
+        const y = (clientY - rect.top) * canvas.height / rect.height;
+        const hitbox = messageIconHitbox;
+        return x >= hitbox.x && x <= hitbox.x + hitbox.width &&
+          y >= hitbox.y && y <= hitbox.y + hitbox.height ? hitbox : null;
+      }
+      const scale = Math.min(canvas.width / WORLD.width, canvas.height / WORLD.height) * zoomLevel;
+      const offsetX = (canvas.width - WORLD.width * scale) / 2 + panX * scale;
+      const offsetY = (canvas.height - WORLD.height * scale) / 2 + panY * scale;
+      const worldX = ((clientX - rect.left) * canvas.width / rect.width - offsetX) / scale;
+      const worldY = ((clientY - rect.top) * canvas.height / rect.height - offsetY) / scale;
+      const hitbox = messageIconHitbox;
+      return worldX >= hitbox.x && worldX <= hitbox.x + hitbox.width &&
+        worldY >= hitbox.y && worldY <= hitbox.y + hitbox.height ? hitbox : null;
+    }
+
+    canvas.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      pointerDrag = { id: event.pointerId, x: event.clientX, y: event.clientY, panX, panY };
+      canvas.setPointerCapture(event.pointerId);
+      canvas.style.cursor = 'grabbing';
+    });
+    canvas.addEventListener('pointermove', (event) => {
+      if (!pointerDrag || event.pointerId !== pointerDrag.id) {
+        canvas.style.cursor = messageIconAtClientPoint(event.clientX, event.clientY) ? 'pointer' : 'grab';
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const scale = Math.min(canvas.width / WORLD.width, canvas.height / WORLD.height) * zoomLevel;
+      const pixelRatioX = canvas.width / rect.width;
+      const pixelRatioY = canvas.height / rect.height;
+      panX = pointerDrag.panX + (event.clientX - pointerDrag.x) * pixelRatioX / scale;
+      panY = pointerDrag.panY + (event.clientY - pointerDrag.y) * pixelRatioY / scale;
+      draw();
+    });
+    function stopMapDrag(event) {
+      if (!pointerDrag || event.pointerId !== pointerDrag.id) return;
+      const wasClick = Math.hypot(event.clientX - pointerDrag.x, event.clientY - pointerDrag.y) < 6;
+      if (wasClick) {
+        const hitbox = messageIconAtClientPoint(event.clientX, event.clientY);
+        if (hitbox) openPairChat(hitbox.pairKey, hitbox.peerName);
+      }
+      pointerDrag = null;
+      canvas.style.cursor = messageIconAtClientPoint(event.clientX, event.clientY) ? 'pointer' : 'grab';
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    }
+    canvas.addEventListener('pointerup', stopMapDrag);
+    canvas.addEventListener('pointercancel', stopMapDrag);
+    canvas.addEventListener('pointerleave', () => {
+      if (!pointerDrag) canvas.style.cursor = 'grab';
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+
+    function setPanel(name, isOpen) {
+      for (const [panelName, panel] of Object.entries(panels)) {
+        const open = panelName === name && isOpen;
+        panel.classList.toggle('hidden', !open);
+        const button = toolButtons.find((item) => item.dataset.panel === panelName);
+        if (button) button.setAttribute('aria-expanded', String(open));
+      }
+    }
+
+    for (const button of toolButtons) {
+      button.addEventListener('click', () => {
+        const name = button.dataset.panel;
+        setPanel(name, panels[name].classList.contains('hidden'));
+      });
+    }
+    document.querySelectorAll('[data-close-panel]').forEach((button) => {
+      button.addEventListener('click', () => setPanel(button.dataset.closePanel, false));
+    });
+
+    const fullscreenToggle = document.getElementById('fullscreenToggle');
+    fullscreenToggle.addEventListener('click', async () => {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+        } else {
+          await document.documentElement.requestFullscreen();
+        }
+      } catch (error) {
+        showStatus(`Tam ekran açılamadı: ${error.message}`, true);
+      }
+    });
+    document.addEventListener('fullscreenchange', () => {
+      const label = document.fullscreenElement ? 'Tam ekrandan çık' : 'Tam ekranı aç';
+      fullscreenToggle.setAttribute('aria-label', label);
+      fullscreenToggle.title = label;
+    });
+
+    function setProfilePanel(open) {
+      profilePanel.classList.toggle('hidden', !open);
+      profileToggle.setAttribute('aria-expanded', String(open));
+      if (open) {
+        profileStatus.textContent = '';
+        profileStatus.style.color = '#86efac';
+      }
+    }
+
+    profileToggle.addEventListener('click', () => {
+      setProfilePanel(profilePanel.classList.contains('hidden'));
+    });
+    document.getElementById('profileClose').addEventListener('click', () => setProfilePanel(false));
+    profileForm.addEventListener('input', () => renderProfileIcon(readCharacterForm()));
+    profileForm.addEventListener('change', () => renderProfileIcon(readCharacterForm()));
+    profileForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      saveCharacterButton.disabled = true;
+      profileStatus.textContent = 'Kaydediliyor...';
+      try {
+        const data = await request('/api/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ character: readCharacterForm() })
+        });
+        activeCharacter = data.character;
+        fillCharacterForm(activeCharacter);
+        renderProfileIcon(activeCharacter);
+        draw();
+        profileStatus.textContent = 'Karakterin kaydedildi.';
+        profileStatus.style.color = '#86efac';
+      } catch (error) {
+        profileStatus.textContent = `Kaydedilemedi: ${error.message}`;
+        profileStatus.style.color = '#fca5a5';
+      } finally {
+        saveCharacterButton.disabled = false;
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLSelectElement ||
+          event.target instanceof HTMLTextAreaElement) return;
+      const key = event.key.toLowerCase();
+      if (!movementDirections[key] && key !== 'shift') return;
+      event.preventDefault();
+      if (selfDrinkingCoffee && movementDirections[key]) return;
+      if (selfSitting && movementDirections[key] && !pressedKeys.has(key) &&
+          !seatRequestPending && socket?.connected) {
+        seatRequestPending = true;
+        socket.emit('standUp');
+        updateSeatPrompt();
+      }
+      pressedKeys.add(key);
+      if (movementDirections[key]) facing = movementDirections[key];
+    });
+
+    document.addEventListener('keyup', (event) => {
+      pressedKeys.delete(event.key.toLowerCase());
+    });
+    window.addEventListener('blur', () => pressedKeys.clear());
+
+    function roomAtPosition(x, y) {
+      return MAP_LAYOUT.ROOMS.find((room) =>
+        x >= room.x && x <= room.x + room.width &&
+        y >= room.y && y <= room.y + room.height
+      ) || null;
+    }
+
+    function gameLoop(now) {
+      const delta = Math.min((now - lastFrameTime) / 1000, 0.05);
+      lastFrameTime = now;
+      const horizontal = Number(pressedKeys.has('arrowright') || pressedKeys.has('d')) -
+        Number(pressedKeys.has('arrowleft') || pressedKeys.has('a'));
+      const vertical = Number(pressedKeys.has('arrowdown') || pressedKeys.has('s')) -
+        Number(pressedKeys.has('arrowup') || pressedKeys.has('w'));
+      const hasMovementInput = Boolean(
+        socket?.connected && !selfSitting && !selfDrinkingCoffee && (horizontal || vertical)
+      );
+      let moving = false;
+
+      if (hasMovementInput) {
+        const latestDirectionKey = Array.from(pressedKeys).reverse().find((key) => movementDirections[key]);
+        if (latestDirectionKey) facing = movementDirections[latestDirectionKey];
+        const length = Math.hypot(horizontal, vertical);
+        const speed = pressedKeys.has('shift') ? 400 : 280;
+        const originRoom = roomAtPosition(self.x, self.y);
+        const previousX = self.x;
+        const previousY = self.y;
+        let lockedRoomAttempt = null;
+        const nextPosition = MAP_LAYOUT.slide(
+          self.x,
+          self.y,
+          (horizontal / length) * speed * delta,
+          (vertical / length) * speed * delta,
+          (x, y) => {
+            if (MAP_LAYOUT.isBlocked(x, y)) return true;
+            const destinationRoom = roomAtPosition(x, y);
+            const isLockedEntry = Boolean(
+              destinationRoom &&
+              destinationRoom.id !== originRoom?.id &&
+              roomLocks[destinationRoom.id]
+            );
+            if (isLockedEntry) lockedRoomAttempt = destinationRoom;
+            return isLockedEntry;
+          }
+        );
+        self.x = nextPosition.x;
+        self.y = nextPosition.y;
+        moving = Math.hypot(self.x - previousX, self.y - previousY) > 0.1;
+        if (lockedRoomAttempt && now - lastLockNoticeTime >= 1200) {
+          showStatus(`${lockedRoomAttempt.name} kilitli.`, true);
+          lastLockNoticeTime = now;
+        }
+      }
+
+      const changed = Math.abs(self.x - lastSentPosition.x) > 0.1 ||
+        Math.abs(self.y - lastSentPosition.y) > 0.1 ||
+        facing !== lastSentPosition.direction ||
+        moving !== lastSentPosition.moving;
+      if (socket?.connected && changed && now - lastMoveSentAt >= 40) {
+        socket.emit('move', {
+          x: self.x,
+          y: self.y,
+          direction: facing,
+          moving
+        });
+        lastMoveSentAt = now;
+        lastSentPosition = { x: self.x, y: self.y, direction: facing, moving };
+      }
+
+      const drawInterval = moving ? 33 : 125;
+      if (office3d || now - lastDrawTime >= drawInterval) {
+        draw(now);
+        lastDrawTime = now;
+      }
+      if (now - lastSeatPromptUpdate >= 120) {
+        updateSeatPrompt();
+        lastSeatPromptUpdate = now;
+      }
+      if (now - lastCoffeePromptUpdate >= 120) {
+        updateCoffeePrompt();
+        lastCoffeePromptUpdate = now;
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    function openMeet(meetUrl = activeContext.meetUrl) {
+      if (!meetUrl) return false;
+      const popup = window.open(meetUrl, '_blank');
+      if (popup) popup.opener = null;
+      showStatus(popup
+        ? 'Meet açıldı. Kamera ve mikrofon izinlerini/kontrollerini Meet penceresinden yönetin.'
+        : 'Meet penceresi engellendi. Tarayıcıda bu site için açılır pencerelere izin verin.', !popup);
+      return Boolean(popup);
+    }
+
+    joinMeet.addEventListener('click', () => {
+      if (activeContext.mode !== 'pair') {
+        openMeet();
+        return;
+      }
+      const pairKey = activeContext.pairKey || activeContext.key;
+      if (acceptedPairMeetingKey === pairKey) {
+        openMeet();
+        return;
+      }
+      if (pendingOutgoingPairKey === pairKey || !socket?.connected) return;
+      pendingOutgoingPairKey = pairKey;
+      updateMeetButton(activeContext);
+      socket.emit('requestMeeting', { pairKey });
+    });
+
+    micControl.addEventListener('click', () => {
+      if (activeContext.mode === 'pair' &&
+          acceptedPairMeetingKey !== (activeContext.pairKey || activeContext.key)) {
+        showStatus('Önce toplantı isteği gönderip karşı tarafın kabul etmesini bekleyin.', true);
+        return;
+      }
+      if (openMeet()) {
+        showStatus('Google Meet REST API mikrofon durumunu değiştirmez. Mikrofon düğmesini Meet penceresinden kullanın.');
+      }
+    });
+    cameraControl.addEventListener('click', () => {
+      if (activeContext.mode === 'pair' &&
+          acceptedPairMeetingKey !== (activeContext.pairKey || activeContext.key)) {
+        showStatus('Önce toplantı isteği gönderip karşı tarafın kabul etmesini bekleyin.', true);
+        return;
+      }
+      if (openMeet()) {
+        showStatus('Google Meet REST API kamera durumunu değiştirmez. Kamera düğmesini Meet penceresinden kullanın.');
+      }
+    });
+
+    async function loadMessages() {
+      if (!activeContext.chatSpaceName) return;
+      try {
+        const data = await request(`/api/chat/messages?space=${encodeURIComponent(activeContext.chatSpaceName)}`);
+        const messages = (data.messages || []).slice().reverse();
+        chatMessages.replaceChildren();
+        for (const message of messages) {
+          const item = document.createElement('div');
+          item.className = 'message';
+          const author = document.createElement('strong');
+          author.textContent = message.sender?.displayName || 'Kullanıcı';
+          const body = document.createElement('div');
+          body.textContent = message.text || '[Metin dışı mesaj]';
+          const time = document.createElement('time');
+          time.textContent = message.createTime ? new Date(message.createTime).toLocaleString('tr-TR') : '';
+          item.append(author, body, time);
+          chatMessages.append(item);
+        }
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      } catch (error) {
+        chatHint.textContent = `Chat okunamadı: ${error.message}`;
+        clearInterval(chatTimer);
+      }
+    }
+
+    chatForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      if (!activeContext.chatSpaceName) {
+        showStatus('Sürekli sohbet için gerçek ROOM_CHAT_SPACE değerini .env dosyasına ekleyin.', true);
+        return;
+      }
+      try {
+        await request('/api/chat/messages', {
+          method: 'POST',
+          body: JSON.stringify({ space: activeContext.chatSpaceName, text })
+        });
+        input.value = '';
+        await loadMessages();
+      } catch (error) {
+        showStatus(`Chat mesajı gönderilemedi: ${error.message}`, true);
+      }
+    });
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      loginError.textContent = '';
+      try {
+        await request('/api/login', {
+          method: 'POST',
+          body: JSON.stringify({ password: document.getElementById('password').value })
+        });
+        googleLogin.classList.remove('hidden');
+        loginError.textContent = 'Şifre doğru. Şimdi Google hesabınızı bağlayın.';
+        loginError.style.color = '#86efac';
+      } catch (error) {
+        loginError.textContent = error.message;
+        loginError.style.color = '#fca5a5';
+      }
+    });
+    googleLogin.addEventListener('click', () => { window.location.href = '/auth/google'; });
+    document.getElementById('logout').addEventListener('click', async () => {
+      try {
+        await request('/api/logout', { method: 'POST', body: '{}' });
+        window.location.reload();
+      } catch (error) {
+        showStatus(`Çıkış yapılamadı: ${error.message}`, true);
+      }
+    });
+
+    request('/api/me').then((data) => {
+      if (data.authenticated) enterGame(data.user, data.character);
+    }).catch((error) => { loginError.textContent = error.message; });
+  </script>
+</body>
+</html>

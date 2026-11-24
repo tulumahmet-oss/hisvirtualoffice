@@ -1,0 +1,25 @@
+CHARACTER MODELS
+
+The animated low-poly character models below are by Quaternius and were
+downloaded from Poly Pizza. Each model page identifies the asset as Public
+Domain (CC0), allowing use without attribution:
+
+- Business Man: https://poly.pizza/m/JFrLIKqvCH
+- Man in Suit: https://poly.pizza/m/mQnGoME1ez
+- Woman in Dress: https://poly.pizza/m/zMyPlQXBzq
+- Woman Casual: https://poly.pizza/m/jpKRgGDxhk
+- Woman: https://poly.pizza/m/AQsd9ngvKU
+- Worker: https://poly.pizza/m/Yg2bQZO6Hj
+- CC0 license: https://creativecommons.org/publicdomain/zero/1.0/
+
+OFFICE MODELS
+
+Office furniture models and textures are from the Low Poly Office Set by
+VNB (Leo): https://vnbp.itch.io/
+The package permits commercial and non-commercial project use. The models
+may not be resold individually or as part of a model pack.
+
+COFFEE MACHINE IMAGE
+
+See coffee-maker-CREDITS.txt in this assets folder for the
+coffee machine image attribution and license.

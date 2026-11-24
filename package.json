@@ -1,0 +1,26 @@
+{
+  "name": "gather-town-workspace-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Google Workspace tabanlı çok oyunculu sanal ofis prototipi",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
+    "connect-redis": "^9.0.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "express-session": "^1.18.1",
+    "googleapis": "^144.0.0",
+    "helmet": "^8.0.0",
+    "redis": "^5.8.0",
+    "socket.io": "^4.8.1",
+    "three": "^0.187.0"
+  }
+}
