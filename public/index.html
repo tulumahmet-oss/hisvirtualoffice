@@ -227,7 +227,7 @@
             <h2>Kontroller</h2>
             <button class="panel-close" type="button" data-close-panel="help" aria-label="Yardımı kapat">×</button>
           </div>
-          <p class="panel-copy">Ofiste gezinmek için ok tuşlarını veya WASD tuşlarını kullanın. Shift ile hızlanın; haritayı fare tekerleğiyle yakınlaştırıp uzaklaştırın, sürükleyerek kaydırın.</p>
+          <p class="panel-copy">Ofiste gezinmek için ok tuşlarını veya WASD tuşlarını kullanın. Shift tuşunu basılı tutarak koşun; haritayı fare tekerleğiyle yakınlaştırıp uzaklaştırın, sürükleyerek kaydırın.</p>
           <p class="panel-copy">Sandalyeye yaklaşınca Otur düğmesine tıklayın. Ayağa kalkmak için düğmeye yeniden tıklayın veya hareket tuşlarını kullanın; dolu sandalyeye oturulamaz.</p>
           <p class="panel-copy">Kahve makinesine yaklaşıp Kahve iç düğmesine tıklayın; karakteriniz kısa bir içme animasyonu oynatır.</p>
           <p class="panel-copy">Kapılar yaklaşınca açılır. Toplantı odasında sol üstteki kilit simgesiyle odayı kilitleyebilir veya açabilirsiniz; kilitli odaya yeni katılımcı giremez.</p>
@@ -350,6 +350,8 @@
       arrowleft: 'left', a: 'left',
       arrowright: 'right', d: 'right'
     };
+    const WALK_SPEED = 240;
+    const RUN_SPEED = 400;
     let facing = 'down';
     let lastFrameTime = 0;
     let lastDrawTime = 0;
@@ -1718,7 +1720,7 @@
         const latestDirectionKey = Array.from(pressedKeys).reverse().find((key) => movementDirections[key]);
         if (latestDirectionKey) facing = movementDirections[latestDirectionKey];
         const length = Math.hypot(horizontal, vertical);
-        const speed = pressedKeys.has('shift') ? 400 : 280;
+        const speed = pressedKeys.has('shift') ? RUN_SPEED : WALK_SPEED;
         const originRoom = roomAtPosition(self.x, self.y);
         const previousX = self.x;
         const previousY = self.y;
