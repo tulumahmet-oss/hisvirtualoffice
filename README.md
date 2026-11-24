@@ -26,7 +26,7 @@ Vercel Project Settings > Environment Variables bolumune sunlari ekleyin:
 
 Google Cloud Console'da OAuth istemcisinin yetkili yonlendirme URI listesine `GOOGLE_REDIRECT_URI` ile ayni HTTPS adresini ekleyin. Uretim ve onizleme ortamlarinin farkli alan adlari varsa her bir callback adresini Google OAuth ayarlarina ve ilgili Vercel ortam degiskenlerine ekleyin.
 
-Vercel'de GitHub deposunu proje olarak ice aktarip yukaridaki degiskenleri girdikten sonra her `main` push'u yeni bir dagitim baslatir. Vercel WebSocket destegi genel kullanima aciktir; baglantilar Function'in calisma suresi limitine ulasinca kapanabilir ve istemci otomatik yeniden baglanir. Bu durumda oyuncu yeniden katilir. Redis oturumlari ve oyun durumunu Function ornekleri arasinda paylasir.
+Vercel'de GitHub deposunu proje olarak ice aktarip yukaridaki degiskenleri girdikten sonra her `main` push'u yeni bir dagitim baslatir. Socket.IO, Vercel'in ayri `api/socket.js` Function'i uzerinden `/api/socket/socket.io` WebSocket yolunu kullanir; istemci yalnizca WebSocket tasimasini kullanmalidir. Baglantilar Function'in calisma suresi limitine ulasinca kapanabilir ve istemci otomatik yeniden baglanir. Bu durumda oyuncu yeniden katilir. Redis oturumlari ve oyun durumunu Function ornekleri arasinda paylasir.
 
 Git baslangic kurulumu (PowerShell):
 
