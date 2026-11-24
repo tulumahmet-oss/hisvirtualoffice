@@ -199,7 +199,8 @@ async function getCharacterProfile(userId) {
 const app = express();
 const server = require('node:http').createServer(app);
 const io = new Server(server, {
-  path: '/api/socket/socket.io',
+  path: '/api/socket',
+  addTrailingSlash: false,
   transports: ['websocket']
 });
 const players = new Map();

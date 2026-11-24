@@ -700,7 +700,8 @@
         renderStaticMap();
       }
       socket = window.io({
-        path: '/api/socket/socket.io',
+        path: '/api/socket',
+        addTrailingSlash: false,
         transports: ['websocket']
       });
       socket.on('connect', () => {
